@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "FAP Helper — Điểm danh giả lập",
+  "version": "0.4.2",
+  "description": "Đối chiếu CSV, điền P/A và submit trên trang GV giả lập FA26.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "action": {"default_popup": "popup.html", "default_title": "FAP Helper"}
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Điểm danh · FAP Helper</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<main>
+  <header><span class="brand">FAP Helper</span><span class="term">FA26</span></header>
+  <section class="card">
+    <div class="eyebrow">ĐIỂM DANH SINH VIÊN</div>
+    <h1>Xác nhận có mặt</h1>
+    <p id="lesson" class="muted">Đang kiểm tra mã QR…</p>
+    <p id="message" role="status" aria-live="polite"></p>
+    <div id="login" hidden>
+      <h2>1. Đăng nhập email của bạn</h2>
+      <p>Dùng tài khoản Google có email trong danh sách lớp. Cho phép <strong>@gmail.com</strong> và <strong>@fpt.edu.vn</strong> theo cấu hình giảng viên.</p>
+      <div id="google-button"></div>
+      <p class="muted small">Đăng nhập qua Google. Trang này không yêu cầu mật khẩu FAP.</p>
+    </div>
+    <form id="attendance" hidden>
+      <h2>2. Gửi điểm danh</h2>
+      <div id="identity" class="identity"></div>
+      <div id="secret-field" hidden>
+        <label for="secret">Mã bí mật giảng viên cung cấp</label>
+        <input id="secret" name="secret" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="6 chữ số">
+        <p class="muted small">Nhập mã hiển thị trên màn hình giảng viên.</p>
+      </div>
+      <button id="submit" type="submit">Xác nhận có mặt</button>
+    </form>
+    <div id="success" hidden><div class="check">✓</div><h2>Đã ghi nhận có mặt</h2><p>Kết quả P đã được lưu cho buổi học này. Bạn có thể đóng trang.</p></div>
+    <p id="expiry" class="muted small"></p>
+  </section>
+  <footer>Công cụ hỗ trợ điểm danh độc lập · Không phải website FAP chính thức.</footer>
+</main>
+</body>
+</html>

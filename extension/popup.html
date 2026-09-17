@@ -1,0 +1,18 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>FAP Helper</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header><div class="brand-mark" aria-hidden="true">f<span>.</span></div><div><strong>FAP Helper</strong><small>Trợ lý điểm danh</small></div><span class="term">FA26</span></header>
+<main>
+<div class="intro"><span class="eyebrow">ĐỒNG BỘ ĐIỂM DANH</span><h1>Từ file đến lớp học.</h1><p>Chuyển kết quả lên trang GV giả lập trong vài bước.</p></div>
+<ol class="steps" aria-label="Các bước chuyển điểm danh"><li class="active" id="step-file"><b>1</b> Chọn file</li><li id="step-check"><b>2</b> Đối chiếu</li><li id="step-save"><b>3</b> Lưu kết quả</li></ol>
+<section class="card">
+<label for="file" class="field-label">File điểm danh <span>.CSV</span></label>
+<div class="upload"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg><div><strong id="file-name">Chọn file từ máy tính</strong><small id="file-hint">CSV đã xuất từ FAP Helper · tối đa 5 MB</small></div><span class="upload-plus" aria-hidden="true">+</span><input id="file" type="file" accept=".csv" aria-label="Chọn file CSV"></div>
+<label for="session" class="field-label session-label">Buổi cần chuyển</label><select id="session" disabled><option>Chọn file CSV để xem buổi học</option></select>
+<button id="preview" class="secondary" disabled>Đối chiếu với tab hiện tại <span aria-hidden="true">↗</span></button>
+</section>
+<div id="message" role="status" aria-live="polite">Mở đúng buổi trên trang GV giả lập trước khi dùng extension.</div>
+<section id="summary" hidden aria-label="Kết quả đối chiếu"><div class="summary-heading"><strong>✓ Danh sách đã khớp</strong><span id="summary-count"></span></div><p id="summary-session"></p><div class="metrics"><div class="present"><strong id="summary-present">0</strong><span>Có mặt · P</span></div><div class="absent"><strong id="summary-absent">0</strong><span>Vắng · A</span></div><div><strong id="summary-changed">0</strong><span>Ô thay đổi</span></div></div></section>
+<details class="connection-settings"><summary>Địa chỉ trang giả lập</summary><label for="mock-origin">Domain production Vercel (để trống khi dùng localhost)</label><input id="mock-origin" type="url" placeholder="https://ten-project.vercel.app" autocomplete="off"><button id="save-origin" class="secondary" type="button">Lưu địa chỉ</button></details>
+</main>
+<footer><button id="submit" disabled>Điền P/A và submit <span aria-hidden="true">↗</span></button><p>P/A của buổi đã chọn sẽ được cập nhật theo CSV.</p></footer>
+<script type="module" src="popup.mjs"></script></body></html>

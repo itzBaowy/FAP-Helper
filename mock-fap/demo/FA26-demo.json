@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 2,
+  "termCode": "FA26",
+  "termStart": "2026-09-07",
+  "termEnd": null,
+  "totalSessions": null,
+  "sourceName": "FA26_test.xlsx",
+  "importedAt": "2026-09-01T00:00:00.000Z",
+  "groups": [
+    {
+      "sheetName": "11_PRM393_SE1920",
+      "subjectCode": "PRM393",
+      "classCode": "SE1920",
+      "dayPair": 1,
+      "slotNumber": 1,
+      "students": [
+        {
+          "classCode": "SE1920",
+          "rollNumber": "SE000001",
+          "email": "an@example.com",
+          "memberCode": "an",
+          "fullName": "Nguyễn Văn An"
+        },
+        {
+          "classCode": "SE1920",
+          "rollNumber": "SE000002",
+          "email": "binh@example.com",
+          "memberCode": "binh",
+          "fullName": "Trần Bình"
+        },
+        {
+          "classCode": "SE1920",
+          "rollNumber": "SE000003",
+          "email": "chi@example.com",
+          "memberCode": "chi",
+          "fullName": "Lê Chi"
+        }
+      ]
+    }
+  ],
+  "attendance": {
+    "PRM393/SE1920": {
+      "plannedTotal": null,
+      "sessions": [
+        {
+          "date": "2026-09-07",
+          "slot": 1,
+          "isMakeup": false,
+          "state": "closed",
+          "marks": {
+            "SE000001": "P",
+            "SE000003": "P",
+            "SE000002": "A"
+          },
+          "openedAt": "2026-09-16T03:00:00.000Z",
+          "closedAt": "2026-09-16T03:00:00.000Z",
+          "note": ""
+        },
+        {
+          "date": "2026-09-10",
+          "slot": 1,
+          "isMakeup": false,
+          "state": "closed",
+          "marks": {
+            "SE000001": "A",
+            "SE000002": "A",
+            "SE000003": "A"
+          },
+          "openedAt": "2026-09-16T03:00:00.000Z",
+          "closedAt": "2026-09-16T03:00:00.000Z",
+          "note": ""
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "open",
+          "sessionId": "2026-09-07/1",
+          "rollNumber": null,
+          "before": null,
+          "after": null,
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "mark",
+          "sessionId": "2026-09-07/1",
+          "rollNumber": "SE000001",
+          "before": null,
+          "after": "P",
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "mark",
+          "sessionId": "2026-09-07/1",
+          "rollNumber": "SE000003",
+          "before": null,
+          "after": "P",
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "close_absent",
+          "sessionId": "2026-09-07/1",
+          "rollNumber": "SE000002",
+          "before": null,
+          "after": "A",
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "close",
+          "sessionId": "2026-09-07/1",
+          "rollNumber": null,
+          "before": null,
+          "after": null,
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "open",
+          "sessionId": "2026-09-10/1",
+          "rollNumber": null,
+          "before": null,
+          "after": null,
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "close_absent",
+          "sessionId": "2026-09-10/1",
+          "rollNumber": "SE000001",
+          "before": null,
+          "after": "A",
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "close_absent",
+          "sessionId": "2026-09-10/1",
+          "rollNumber": "SE000002",
+          "before": null,
+          "after": "A",
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "close_absent",
+          "sessionId": "2026-09-10/1",
+          "rollNumber": "SE000003",
+          "before": null,
+          "after": "A",
+          "reason": ""
+        },
+        {
+          "at": "2026-09-16T03:00:00.000Z",
+          "action": "close",
+          "sessionId": "2026-09-10/1",
+          "rollNumber": null,
+          "before": null,
+          "after": null,
+          "reason": ""
+        }
+      ]
+    }
+  }
+}
