@@ -1,18 +1,18 @@
 const code = value => typeof value === 'string' && /^[A-Z0-9]+$/.test(value);
-const text = value => typeof value === 'string' && value.length <= 500;
+const text = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 500;
 export function importMarkbook(book, previous = null) {
-  if (book?.schemaVersion !== 2 || book.termCode !== 'FA26' || !Array.isArray(book.groups) || !book.groups.length || book.groups.length > 200) throw Error('Cần file FA26.json phiên bản 2 từ desktop.');
+  if (book?.schemaVersion !== 2 || book.termCode !== 'FA26' || !Array.isArray(book.groups) || !book.groups.length || book.groups.length > 200) throw Error('Dữ liệu phải đúng cấu trúc học kỳ FA26.');
   const groups = [], sessions = [], ids = new Set();
   for (const g of book.groups) {
-    if (!code(g.subjectCode) || !code(g.classCode) || !Array.isArray(g.students) || !g.students.length || g.students.length > 1000) throw Error('Danh sách lớp không hợp lệ.');
+    if (!code(g.subjectCode) || !code(g.classCode) || !Number.isInteger(g.dayPair) || g.dayPair < 1 || g.dayPair > 3 || !Number.isInteger(g.slotNumber) || g.slotNumber < 1 || g.slotNumber > 4 || !Array.isArray(g.students) || !g.students.length || g.students.length > 1000) throw Error('Danh sách lớp hoặc lịch học không hợp lệ.');
     const id = `${g.subjectCode}/${g.classCode}`;
     if (ids.has(id)) throw Error('Trùng lớp học phần.'); ids.add(id);
     const rolls = new Set();
     const students = g.students.map(s => {
-      if (!code(s.rollNumber) || s.classCode !== g.classCode || rolls.has(s.rollNumber) || !text(s.fullName) || !text(s.email)) throw Error('MSSV, tên hoặc email không hợp lệ.');
-      rolls.add(s.rollNumber); return {roll:s.rollNumber, name:s.fullName, email:s.email};
+      if (!code(s.rollNumber) || s.classCode !== g.classCode || rolls.has(s.rollNumber) || !text(s.fullName) || !text(s.email) || !text(s.memberCode)) throw Error('MSSV, tên, email hoặc MemberCode không hợp lệ.');
+      rolls.add(s.rollNumber); return {roll:s.rollNumber, name:s.fullName, email:s.email, memberCode:s.memberCode};
     });
-    groups.push({id, subject:g.subjectCode, classCode:g.classCode, students});
+    groups.push({id, subject:g.subjectCode, classCode:g.classCode, sheetName:g.sheetName ?? '', dayPair:g.dayPair, slotNumber:g.slotNumber, students});
     const stored = book.attendance?.[id]?.sessions ?? [];
     if (!Array.isArray(stored) || stored.length > 400) throw Error('Danh sách buổi học không hợp lệ.');
     const unique = new Set();
@@ -21,7 +21,7 @@ export function importMarkbook(book, previous = null) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(s.date) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0,10) !== s.date || s.date < '2026-09-07' || !Number.isInteger(s.slot) || s.slot < 1 || s.slot > 4 || !['planned','open','closed','cancelled'].includes(s.state)) throw Error('Ngày, slot hoặc trạng thái buổi không hợp lệ.');
       const sessionId = `FA26/${id}/${s.date}/${s.slot}`;
       if(unique.has(sessionId)) throw Error('Trùng buổi học.'); unique.add(sessionId);
-      if(s.state !== 'cancelled') sessions.push({id:sessionId, groupId:id, date:s.date, slot:s.slot});
+      if(s.state !== 'cancelled') sessions.push({id:sessionId, groupId:id, date:s.date, slot:s.slot, state:s.state, isMakeup:s.isMakeup===true});
     }
   }
   // Re-import preserves submitted sessions only when their roster is unchanged.

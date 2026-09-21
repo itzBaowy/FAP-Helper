@@ -42,13 +42,13 @@ Nếu trang yêu cầu đăng nhập **Vercel**, đây là **Settings → Deploy
 
 ## 3. Bật kết nối từ máy GV
 
-Nếu cửa sổ `mock-fap/start.ps1` đang chạy, nhấn **Ctrl+C trong cửa sổ đó** để dừng trước; hai chế độ dùng chung cổng 8990 và cùng file JSON. Không cần dừng desktop hoặc QR sinh viên.
+Nếu cửa sổ `mock-fap/start.ps1` đang chạy, nhấn **Ctrl+C trong cửa sổ đó** để dừng trước; hai chế độ dùng chung     cổng 8990 và cùng file JSON. Không cần dừng desktop hoặc QR sinh viên.
 
 Mở PowerShell tại thư mục dự án, chạy (thay domain mẫu):
 
 ```powershell
 Set-Location 'D:\Projects\FAP-Helper\fap_helper_v1'
-powershell -NoProfile -ExecutionPolicy Bypass -File mock-fap\start-vercel.ps1 -Origin 'https://fap-helper-gv.vercel.app'
+powershell -NoProfile -ExecutionPolicy Bypass -File mock-fap\start-vercel.ps1 -Origin 'https://fap-helper-lecturer.vercel.app'
 ```
 
 Chương trình dùng Node.js và file `build/windows/x64/runner/Release/cloudflared.exe` đã có trên máy này. Nếu dùng bản giải nén ở máy khác, chỉ rõ vị trí cloudflared trong gói desktop:
@@ -70,9 +70,18 @@ Giữ cửa sổ kết nối mở. Khi tắt hoặc khởi động lại chươn
 
 Extension chỉ cho phép localhost và domain Vercel đã lưu. Quyền `storage` mới chỉ dùng lưu domain; không lưu CSV, danh sách SV hay khóa kết nối trong extension.
 
-## 5. Nhập dữ liệu và kiểm tra
+## 5. Nhập Excel và kiểm tra
 
-Trang Vercel dùng lại `%APPDATA%\FAPHelper-Mock\mock-fa26.json` trên máy GV. Nếu đã nhập dữ liệu ở localhost, dữ liệu đó vẫn hiện sau khi kết nối. Nếu chưa, bấm **Nhập dữ liệu** và chọn `mock-fap/demo/FA26-demo.json` để thử, hoặc `%APPDATA%\FAPHelper\FA26.json` từ desktop.
+Trang Vercel dùng lại `%APPDATA%\FAPHelper-Mock\mock-fa26.json` trên máy GV. Nếu đã nhập dữ liệu ở localhost, dữ liệu đó vẫn hiện sau khi kết nối.
+
+Bấm **Import Excel** và chọn file `.xlsx` của học kỳ FA26. Trang đọc trực tiếp file trong trình duyệt; file Excel không được tải lên Vercel. Quy ước dữ liệu giống ứng dụng desktop:
+
+- Mỗi sheet là một lớp, tên theo mẫu `11_PRN232_SE1917`: số đầu là cặp ngày 1–3, số thứ hai là slot 1–4, sau đó là mã môn và mã lớp.
+- Dòng dữ liệu đầu tiên của mỗi sheet phải có đủ `Class`, `RollNumber`, `Email`, `MemberCode`, `FullName`; thứ tự cột có thể thay đổi.
+- Trang nhập toàn bộ sheet hợp lệ, danh sách sinh viên, cặp ngày, slot và khung giờ. Các ngày học được tạo từ 07/09/2026 đến 14 ngày sau ngày import để có thể chọn và nhận CSV từ extension.
+- Sheet sai tên, thiếu cột, sai lớp/email, trùng MSSV/email hoặc dùng công thức trong thông tin sinh viên sẽ chặn toàn bộ lần import và hiển thị lỗi.
+
+Trang vẫn nhận `FA26.json` phiên bản 2 để tương thích với quy trình cũ và có thể dùng `mock-fap/demo/FA26-demo.json` để thử nhanh.
 
 Dùng CSV tương ứng để chuyển một buổi. Sau khi submit thành công, tải lại tab để xác nhận P/A được giữ. Dữ liệu được lưu trên máy GV, không được tải vào project Vercel.
 

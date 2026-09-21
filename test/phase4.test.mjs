@@ -54,6 +54,7 @@ test('HTTP persists across restart, protects origin, fails safely on disk error'
   const directory=await mkdtemp(path.join(os.tmpdir(),'fap-phase4-'));let server;
   try{
     server=await startServer({port:0,directory});let origin=`http://127.0.0.1:${server.address().port}`;
+    assert.equal((await fetch(origin+'/xlsx-importer.mjs')).status,200);
     const post=(url,body,source=origin)=>fetch(origin+url,{method:'POST',headers:{'Content-Type':'application/json',Origin:source},body:JSON.stringify(body)});
     assert.equal((await post('/api/import',{book},'https://evil.example')).status,403);
     let response=await post('/api/import',{book});assert.equal(response.status,200);let state=await response.json();

@@ -26,7 +26,7 @@ try {
     await page.route(frontend+'/**',async route=>{
       const pathname=new URL(route.request().url()).pathname;
       const name=pathname==='/'?'index.html':pathname.slice(1);
-      assert.ok(['index.html','app.mjs','connection.mjs','style.css'].includes(name));
+      assert.ok(['index.html','app.mjs','connection.mjs','xlsx-importer.mjs','style.css'].includes(name));
       await route.fulfill({headers,contentType:name.endsWith('.html')?'text/html':name.endsWith('.css')?'text/css':'text/javascript',body:await readFile('deploy/mock-fap/public/'+name)});
     });
   }
