@@ -9,6 +9,7 @@ import '../data/windows_file_picker.dart';
 import '../domain/attendance_models.dart';
 import '../domain/attendance_service.dart';
 import '../domain/markbook.dart';
+import '../domain/session_attendance_report.dart';
 import 'attendance_dialogs.dart';
 import 'roster_dialog.dart';
 import 'qr_attendance_dialog.dart';
@@ -64,6 +65,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   String? _selectedId;
   bool _saving = false;
   String _query = '';
+  AttendanceFilter _filter = AttendanceFilter.all;
   final _search = TextEditingController();
   final _horizontal = ScrollController();
   final _vertical = ScrollController();
@@ -356,9 +358,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final schedule = _schedule;
     final filtered = _group.students
         .where(
-          (s) => '${s.rollNumber} ${s.fullName} ${s.email} ${s.memberCode}'
-              .toLowerCase()
-              .contains(_query),
+          (s) =>
+              _filter.matches(session.marks[s.rollNumber]) &&
+              '${s.rollNumber} ${s.fullName} ${s.email} ${s.memberCode}'
+                  .toLowerCase()
+                  .contains(_query),
         )
         .toList();
     final total = _service.requiredTotal(_data);
@@ -631,12 +635,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ],
               ),
               const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final filter in AttendanceFilter.values)
+                    ChoiceChip(
+                      key: ValueKey('attendance-filter-${filter.name}'),
+                      label: Text(
+                        '${filter.label} (${switch (filter) {
+                          AttendanceFilter.all => _group.students.length,
+                          AttendanceFilter.present => present,
+                          AttendanceFilter.absent => absent,
+                          AttendanceFilter.unmarked => _group.students.length - session.marks.length,
+                        }})',
+                      ),
+                      selected: _filter == filter,
+                      onSelected: (_) => setState(() => _filter = filter),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Expanded(
                 child: filtered.isEmpty
                     ? const Surface(
                         child: EmptyState(
                           title: 'Không tìm thấy sinh viên',
-                          message: 'Thử tìm bằng MSSV hoặc một phần họ tên.',
+                          message: 'Thử đổi bộ lọc hoặc tìm bằng MSSV, một phần họ tên.',
                           icon: Icons.person_search_outlined,
                         ),
                       )

@@ -5,6 +5,7 @@
   let timer;
   let completed = false;
   let signingIn = false;
+  let submitting = false;
   let apiOrigin = location.origin;
   const message = (text, error = false) => {
     $('message').textContent = text;
@@ -45,14 +46,20 @@
   }
   $('attendance').addEventListener('submit', async event => {
     event.preventDefault();
+    if (submitting || completed) return;
+    submitting = true;
     $('submit').disabled = true;
     message('Đang lưu điểm danh…');
     try {
-      await api('/api/submit', {ticket:scan.ticket, secret:$('secret').value.trim()});
+      const result = await api('/api/submit', {ticket:scan.ticket, secret:$('secret').value.trim()});
       completed = true; clearInterval(timer);
+      $('success-title').textContent = result.duplicate ? 'Bạn đã điểm danh trước đó' : 'Đã ghi nhận có mặt';
+      $('success-detail').textContent = result.duplicate
+        ? 'Kết quả P đã được lưu cho buổi học này. Lượt gửi lại không tạo thêm bản ghi. Bạn có thể đóng trang.'
+        : 'Kết quả P đã được lưu cho buổi học này. Bạn có thể đóng trang.';
       $('attendance').hidden = true; $('success').hidden = false; $('expiry').textContent = ''; message('');
     } catch (error) { failure(error); }
-    finally { $('submit').disabled = false; }
+    finally { submitting = false; $('submit').disabled = completed; }
   });
   async function start() {
     const fragment = location.hash.slice(1);

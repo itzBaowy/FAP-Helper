@@ -217,6 +217,63 @@ void main() {
     expect(saves, 1);
   });
   test(
+    'multiple scans of one identity share one saved mark and audit event',
+    () async {
+      await setupHost();
+      final tickets = await Future.wait(List.generate(6, (_) => login()));
+      save = (_) => Future.delayed(const Duration(milliseconds: 10));
+      final results = await Future.wait(
+        tickets.map((id) => host.submit(id, '')),
+      );
+      expect(results.where((result) => result['duplicate'] == false).length, 1);
+      expect(results.where((result) => result['duplicate'] == true).length, 5);
+      expect(saves, 1);
+      expect(book.attendanceFor(group).sessions.single.marks.length, 1);
+      expect(
+        book
+            .attendanceFor(group)
+            .history
+            .where((e) => e.action == 'qr_present')
+            .length,
+        1,
+      );
+      now = now.add(const Duration(seconds: 15));
+      final nextQr = await login();
+      expect((await host.submit(nextQr, ''))['duplicate'], true);
+      expect(saves, 1);
+    },
+  );
+
+  test(
+    'a failed queued save permits another scan to save once without duplicates',
+    () async {
+      await setupHost();
+      final first = await login();
+      final second = await login();
+      var attempts = 0;
+      save = (_) async {
+        if (++attempts == 1) throw const FileSystemException('Disk full');
+      };
+      final failed = expectLater(
+        host.submit(first, ''),
+        throwsA(isA<FileSystemException>()),
+      );
+      final saved = host.submit(second, '');
+      await failed;
+      expect((await saved)['duplicate'], false);
+      expect((await host.submit(first, ''))['duplicate'], true);
+      expect(saves, 1);
+      expect(
+        book
+            .attendanceFor(group)
+            .history
+            .where((e) => e.action == 'qr_present')
+            .length,
+        1,
+      );
+    },
+  );
+  test(
     'close waits for an in-flight save and rejects subsequent submits',
     () async {
       await setupHost();

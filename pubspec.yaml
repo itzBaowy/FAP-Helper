@@ -1,7 +1,7 @@
 name: fap_helper_v1
 description: "Ứng dụng quản lý lớp và lịch dạy FA26 dành cho giảng viên."
 publish_to: 'none'
-version: 0.3.3+6
+version: 0.3.4+7
 
 environment:
   sdk: ^3.13.3

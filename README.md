@@ -15,7 +15,11 @@ Phase 2 bổ sung bảng điểm danh theo buổi, P/A thủ công, chốt, sử
 
 Phase 3 bổ sung QR đổi mỗi 15 giây, mã bí mật tùy chọn, trang sinh viên, xác thực Google và kết nối HTTPS thử nghiệm từ hai mạng khác nhau. Email phải thuộc danh sách lớp và miền cho phép (`gmail.com`, `fpt.edu.vn`). Từ v0.3.1, Client ID, miền email và kết nối được thiết lập tại **Cấu hình** trên sidebar; màn hình QR chỉ giữ tùy chọn mã bí mật cho từng đợt. Xem [cấu hình và hướng dẫn Phase 3](docs/phase-3.md).
 
-Phase 4 bổ sung **trang GV giả lập và Chrome extension**: đọc CSV, đối chiếu đúng buổi/MSSV, xem trước, tự điền P/A và submit. Trang lưu JSON riêng, không cần tài khoản GV của trường. Xem [hướng dẫn chạy thử và nghiệm thu Phase 4](docs/phase-4.md). Desktop hiện dùng v0.3.3; extension v0.4.2 hỗ trợ domain Vercel đã cấu hình. Xem [hướng dẫn Vercel cho trang GV](docs/vercel-mock-setup.md). Adapter FAP thật chưa triển khai.
+Phase 4 bổ sung **trang GV giả lập và Chrome extension**: đọc CSV, đối chiếu đúng buổi/MSSV, xem trước, tự điền P/A và submit. Trang lưu JSON riêng, không cần tài khoản GV của trường. Xem [hướng dẫn chạy thử và nghiệm thu Phase 4](docs/phase-4.md). Desktop hiện dùng v0.3.4; extension v0.4.2 hỗ trợ domain Vercel đã cấu hình. Xem [hướng dẫn Vercel cho trang GV](docs/vercel-mock-setup.md). Adapter FAP thật chưa triển khai.
+
+**v0.3.4 — Theo dõi điểm danh trực tiếp:** màn hình QR hiển thị tên, MSSV, nguồn QR/thủ công và giờ ghi nhận GMT+7 ngay sau khi lưu thành công. Lọc có mặt/vắng/chưa ghi nhận, tìm sinh viên và sắp xếp theo lần cập nhật mới nhất hoặc MSSV. Tắt **Hiển thị người đã điểm danh** khi trình chiếu QR để ẩn danh sách. Bảng điểm danh cũng có bộ lọc theo buổi đang chọn. Trang SV chặn gửi liên tiếp và thông báo rõ khi đã điểm danh; hàng đợi trên máy GV bảo đảm nhiều lượt quét của cùng sinh viên chỉ lưu một P và một sự kiện QR. Dữ liệu JSON/CSV hiện có tiếp tục dùng được. Bản static tại `deploy/student` đã cập nhật nguồn; cần triển khai lại nếu đang dùng trang SV trên Vercel.
+
+**Kiểm chứng v0.3.4:** 74 kiểm thử Flutter, 13 kiểm thử Node và phân tích mã đạt. Kiểm thử tích hợp dùng HTTP localhost thật, danh tính Google giả và dữ liệu sinh viên giả: lỗi/chờ lưu chưa hiện tên, lưu thành công mới hiện, gửi lại không tăng số bản ghi. Kiểm tra bố cục QR ở 1280×900 và 800×600. Ảnh [cửa sổ rộng](build/previews/attendance-live-wide.png) và [800×600](build/previews/attendance-live-800x600.png) được tạo bằng Flutter test renderer, không phải ảnh app native. Phần Dart AOT và assets Windows release đã biên dịch bằng `flutter assemble`; chưa có `.exe` v0.3.4 vì Visual Studio trên máy hiện tại thiếu MSVC, CMake và Windows SDK. Không coi các bản `.exe`/ZIP của phiên bản trước là bản v0.3.4.
 
 **v0.3.3 — Reset:** tại Cấu hình, chọn reset một lớp học phần hoặc toàn bộ FA26; nhập RESET để xác nhận. Tự sao lưu trước khi xóa P/A, giữ sinh viên, lịch học, cấu hình và lịch sử.
 
@@ -23,17 +27,17 @@ Phase 4 bổ sung **trang GV giả lập và Chrome extension**: đọc CSV, đ�
 
 ## Chạy trên Windows
 
-Yêu cầu Flutter tương thích Dart `^3.13.3` và Visual Studio có workload **Desktop development with C++**, bao gồm MSVC, CMake và Windows SDK. Xem [hướng dẫn Windows chính thức của Flutter](https://docs.flutter.dev/platform-integration/windows/setup). Flutter SDK đang có trên máy làm việc là `D:\Flutter\flutter`.
+Yêu cầu Flutter tương thích Dart `^3.13.3` và Visual Studio có workload **Desktop development with C++**, bao gồm MSVC, CMake và Windows SDK. Xem [hướng dẫn Windows chính thức của Flutter](https://docs.flutter.dev/platform-integration/windows/setup). Flutter SDK trên máy làm việc hiện tại là `C:\Flutter\flutter`; thay đường dẫn nếu máy bạn dùng vị trí khác.
 
 ```powershell
-& 'D:\Flutter\flutter\bin\flutter.bat' pub get
-& 'D:\Flutter\flutter\bin\flutter.bat' run -d windows
+& 'C:\Flutter\flutter\bin\flutter.bat' pub get
+& 'C:\Flutter\flutter\bin\flutter.bat' run -d windows
 ```
 
 Build bản release:
 
 ```powershell
-& 'D:\Flutter\flutter\bin\flutter.bat' build windows --release
+& 'C:\Flutter\flutter\bin\flutter.bat' build windows --release
 ```
 
 Khi build thành công, chạy `build\windows\x64\runner\Release\fap_helper_v1.exe`. Khi chuyển sang máy khác phải chuyển **toàn bộ thư mục Release**, gồm DLL và thư mục `data`.
@@ -82,9 +86,10 @@ Giờ hiện tại dùng GMT+7, cập nhật mỗi 15 giây. Lớp được high
 ## Kiểm tra
 
 ```powershell
-& 'D:\Flutter\flutter\bin\flutter.bat' analyze
-& 'D:\Flutter\flutter\bin\flutter.bat' test
-& 'D:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe' tool/inspect_workbook.dart 'C:\Users\Admin\Downloads\FA26_Markbook.xlsx'
+& 'C:\Flutter\flutter\bin\flutter.bat' analyze
+& 'C:\Flutter\flutter\bin\flutter.bat' test
+node --test test/*.test.mjs
+& 'C:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe' tool/inspect_workbook.dart 'C:\Users\Admin\Downloads\FA26_Markbook.xlsx'
 ```
 
 Lệnh cuối chỉ in thống kê, lịch và lỗi cấu trúc; không in tên/email/MSSV của sinh viên. Test tự động dùng dữ liệu giả với miền `example.com`.
@@ -93,7 +98,7 @@ Lệnh cuối chỉ in thống kê, lịch và lỗi cấu trúc; không in tên
 
 ```powershell
 $env:FAP_PREVIEW_WORKBOOK = 'C:\Users\Admin\Downloads\FA26_Markbook.xlsx'
-& 'D:\Flutter\flutter\bin\flutter.bat' test tool/render_preview_test.dart
+& 'C:\Flutter\flutter\bin\flutter.bat' test tool/render_preview_test.dart
 ```
 
 Ảnh được lưu trong `build/previews/`; giờ minh họa cố định **15/09/2026 lúc 10:00**. Đây là ảnh từ Flutter test renderer, không phải bằng chứng app native đã build thành công.

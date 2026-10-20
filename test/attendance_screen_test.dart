@@ -208,4 +208,41 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'status filters combine with search and follow the selected session',
+    (tester) async {
+      final book = service.mark(
+        service.open(attendanceFixture(), group, first, now),
+        group,
+        first,
+        'SE000001',
+        AttendanceMark.present,
+        now,
+      );
+      await mount(tester, book, (_) async {});
+      await tester.tap(find.byKey(const ValueKey('attendance-filter-present')));
+      await tester.pumpAndSettle();
+      expect(find.text('Nguyễn Văn An'), findsOneWidget);
+      expect(find.text('Trần Bình'), findsNothing);
+      await tester.enterText(find.byType(TextField), 'SE000003');
+      await tester.pumpAndSettle();
+      expect(find.text('Không tìm thấy sinh viên'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('attendance-filter-unmarked')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Lê Chi'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '');
+      await tester.tap(find.byKey(const ValueKey('attendance-filter-present')));
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Buổi 2 · 10/09/2026 · Slot 1').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Không tìm thấy sinh viên'), findsOneWidget);
+      expect(find.text('Đã có mặt (0)'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

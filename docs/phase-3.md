@@ -1,6 +1,6 @@
 # Phase 3 — QR và đăng nhập Google
 
-Windows v0.3.2. Dùng lại lớp, buổi học, lịch sử và file JSON của Phase 2; không dùng database. QR thường hoặc QR kèm mã bí mật. Người dùng đã chọn Google xác thực email, cho phép `gmail.com` và `fpt.edu.vn`; email phải có trong danh sách của đúng lớp.
+Windows v0.3.4. Dùng lại lớp, buổi học, lịch sử và file JSON của Phase 2; không dùng database. QR thường hoặc QR kèm mã bí mật. Người dùng đã chọn Google xác thực email, cho phép `gmail.com` và `fpt.edu.vn`; email phải có trong danh sách của đúng lớp.
 
 Để dùng trang sinh viên trên domain Vercel cố định, làm theo [hướng dẫn triển khai Vercel](vercel-setup.md). Gói nguồn static đã chuẩn bị tại `deploy/student`; người dùng cần đăng nhập và triển khai lên tài khoản Vercel của mình.
 
@@ -31,8 +31,9 @@ Nếu vẫn lỗi, lấy nguyên văn dòng giải thích bên dưới `invalid_
 3. Mở lớp, chọn đúng buổi đã đến giờ, bấm **Mở buổi**, sau đó **Điểm danh QR**. Màn hình này đọc cấu hình đã lưu và chỉ giữ tùy chọn **QR + mã bí mật** cho từng đợt nhận.
 4. Bấm **Bắt đầu nhận QR**. Nếu dùng địa chỉ thử nghiệm, sao chép origin xuất hiện dưới QR sang cấu hình Google; đợi Google áp dụng rồi quét QR mới.
 5. SV dùng camera quét QR, mở bằng Chrome/Safari, đăng nhập Google, kiểm tra thông tin, nhập mã nếu được yêu cầu rồi bấm **Xác nhận có mặt**. Không mở trong trình duyệt nhúng nếu Google từ chối đăng nhập.
-6. App GV cập nhật số đã có mặt sau mỗi lần lưu thành công. Bấm **Chốt danh sách** để dừng nhận và chuyển ô trống thành A. **Dừng nhận QR và quay lại** chỉ dừng nhận, vẫn giữ buổi đang mở; có thể tiếp tục thủ công hoặc mở đợt QR mới.
-7. Trở lại bảng điểm danh để xem P/A, lịch sử QR/Google, sửa có lý do hoặc xuất CSV theo Phase 2.
+6. App GV cập nhật số có mặt và danh sách tên/MSSV/nguồn/giờ ghi nhận sau mỗi lần lưu thành công. Mặc định hiện **Đã có mặt**, mới cập nhật trước; có thể lọc **Tất cả**, **Vắng**, **Chưa ghi nhận**, kết hợp tìm kiếm hoặc chuyển sắp xếp theo MSSV. Danh sách nằm cạnh QR khi đủ rộng, bên dưới khi cửa sổ hẹp. Tắt **Hiển thị người đã điểm danh** để trình chiếu QR mà không hiện tên sinh viên. Thông tin danh sách chỉ hiển thị tại app GV, không thêm API công khai cho SV đọc danh sách lớp.
+7. Bấm **Chốt danh sách** để dừng nhận và chuyển ô trống thành A cho toàn bộ lớp, kể cả người bị ẩn bởi bộ lọc/tìm kiếm. **Dừng nhận QR và quay lại** chỉ dừng nhận, vẫn giữ buổi đang mở; có thể tiếp tục thủ công hoặc mở đợt QR mới. Gửi lặp hoặc quét nhiều QR của cùng buổi không tạo thêm P hay lịch sử QR; trang SV sẽ báo **Bạn đã điểm danh trước đó**. Lỗi ghi file không báo thành công và cho phép thử lại. Cơ chế này chống ghi trùng; xác thực email không chứng minh sinh viên có mặt trong phòng.
+8. Trở lại bảng điểm danh để lọc P/A/chưa ghi nhận theo buổi, xem lịch sử QR/Google, sửa có lý do hoặc xuất CSV theo Phase 2. Giờ trong danh sách lấy từ lịch sử lưu thực tế; dữ liệu cũ thiếu lịch sử hiển thị **Không có lịch sử**, không tự tạo giờ mới.
 
 ## Kết nối từ hai mạng khác nhau
 

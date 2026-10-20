@@ -11,6 +11,7 @@ import '../data/quick_tunnel.dart';
 import '../domain/attendance_models.dart';
 import '../domain/markbook.dart';
 import 'widgets.dart';
+import 'session_attendance_panel.dart';
 
 class QrAttendanceDialog extends StatefulWidget {
   const QrAttendanceDialog({
@@ -20,12 +21,14 @@ class QrAttendanceDialog extends StatefulWidget {
     required this.readBook,
     required this.onSave,
     this.loadSettings,
+    this.createVerifier,
   });
   final String groupId;
   final String sessionId;
   final Markbook Function() readBook;
   final Future<void> Function(Markbook) onSave;
   final Future<QrSettings> Function()? loadSettings;
+  final IdentityVerifier Function(QrSettings)? createVerifier;
   @override
   State<QrAttendanceDialog> createState() => _QrAttendanceDialogState();
 }
@@ -34,6 +37,7 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
   QrSettings? _settings;
   String get _connection => _settings?.connection ?? 'quick';
   bool _secret = false;
+  bool _showRoster = true;
   bool _busy = true;
   String? _error;
   String? _origin;
@@ -104,10 +108,12 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
         sessionId: widget.sessionId,
         clientId: settings.clientId,
         requireSecret: _secret,
-        verifier: GoogleIdentityVerifier(
-          clientId: settings.clientId,
-          domains: settings.domains,
-        ),
+        verifier:
+            widget.createVerifier?.call(settings) ??
+            GoogleIdentityVerifier(
+              clientId: settings.clientId,
+              domains: settings.domains,
+            ),
         readBook: widget.readBook,
         saveBook: (next) async {
           await widget.onSave(next);
@@ -240,11 +246,14 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
     final present = session.marks.values
         .where((m) => m == AttendanceMark.present)
         .length;
+    final absent = session.marks.values
+        .where((m) => m == AttendanceMark.absent)
+        .length;
     return PopScope(
       canPop: false,
       child: Dialog(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960, maxHeight: 860),
+          constraints: const BoxConstraints(maxWidth: 1160, maxHeight: 860),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -256,7 +265,7 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${dateLabel(session.date)} · Slot ${session.slot} · $present/${group.students.length} đã có mặt',
+                  '${dateLabel(session.date)} · Slot ${session.slot} · $present/${group.students.length} đã có mặt · $absent vắng · ${group.students.length - session.marks.length} chưa ghi nhận',
                   style: const TextStyle(color: muted),
                 ),
                 const SizedBox(height: 12),
@@ -271,7 +280,54 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
                   ),
                 Expanded(
                   child: SingleChildScrollView(
-                    child: _origin == null ? _configuration() : _presentation(),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          key: const ValueKey('show-qr-roster'),
+                          contentPadding: EdgeInsets.zero,
+                          value: _showRoster,
+                          onChanged: (value) =>
+                              setState(() => _showRoster = value),
+                          title: const Text('Hiển thị người đã điểm danh'),
+                          subtitle: const Text(
+                            'Tắt khi trình chiếu để ẩn danh sách sinh viên.',
+                          ),
+                        ),
+                        LayoutBuilder(
+                          builder: (context, bounds) {
+                            final presentation = _origin == null
+                                ? _configuration()
+                                : _presentation();
+                            if (!_showRoster) return presentation;
+                            final roster = SessionAttendancePanel(
+                              group: group,
+                              data: widget.readBook().attendanceFor(
+                                widget.groupId,
+                              ),
+                              session: session,
+                            );
+                            if (bounds.maxWidth >= 880) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: presentation),
+                                  const SizedBox(width: 24),
+                                  Expanded(child: roster),
+                                ],
+                              );
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                presentation,
+                                const SizedBox(height: 16),
+                                roster,
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

@@ -46,7 +46,8 @@ void main() {
     (tester) async {
       await mount(tester);
       expect(tester.takeException(), isNull);
-      expect(find.byType(TextField), findsNothing);
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byKey(const ValueKey('qr-roster-search')), findsOneWidget);
       expect(find.byType(DropdownButtonFormField<String>), findsNothing);
       expect(find.text('QR + mã bí mật'), findsOneWidget);
       expect(find.text('Điểm danh QR · PRM393 – SE1920'), findsOneWidget);
@@ -59,6 +60,7 @@ void main() {
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
     },
   );
   testWidgets('settings panel saves shared settings without secret option', (
