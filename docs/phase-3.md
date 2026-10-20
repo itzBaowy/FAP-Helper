@@ -43,19 +43,20 @@ Nếu vẫn lỗi, lấy nguyên văn dòng giải thích bên dưới `invalid_
 - **Internet · địa chỉ HTTPS cố định:** dành cho tên miền và reverse tunnel đã được cấu hình, trỏ tới `http://127.0.0.1:8787` trên máy GV. Nhập origin HTTPS vào app và Google. Đây là đường nâng cấp để dùng ổn định, không cần sửa origin mỗi buổi. App không tự tạo DNS/tài khoản Cloudflare/tunnel cố định.
 - **Thử trên máy này · localhost:** chỉ kiểm tra bằng trình duyệt trên chính máy GV. Điện thoại ở mạng khác không dùng được địa chỉ localhost.
 
-Kết nối hoạt động trong lúc cửa sổ QR và app còn mở. Đóng cửa sổ QR sẽ dừng server và tunnel thử nghiệm. Windows job object cũng kết thúc tiến trình tunnel khi app bị đóng. Không có dịch vụ chạy nền để tiếp tục nhận khi máy GV tắt hoặc mất mạng. Kiểm tra Wi-Fi chưa triển khai.
+Giữ app Windows và mạng hoạt động khi nhận QR. Đóng cửa sổ QR native dừng nhận; đóng tab web GV không tự dừng đợt nhận đang chạy trong app. Khi dừng/chốt, mọi lượt bị từ chối ngay; server/tunnel giữ tối đa 3 phút để trang SV nhận được thông báo đã dừng thay vì lỗi mạng, rồi đóng. Đóng app kết thúc ngay server và tunnel. Không có dịch vụ nhận khi máy GV tắt hoặc mất mạng. Kiểm tra Wi-Fi chưa triển khai.
 
 ## Quy tắc phiên QR
 
 - Mỗi đợt nhận gắn cố định với học kỳ/môn/lớp/buổi; đổi lớp hoặc buổi cần dừng đợt cũ.
 - QR chứa token ngẫu nhiên 256 bit, đổi mỗi 15 giây. Token cũ không đổi được lượt quét mới. Mã nằm trong fragment URL để không đi vào log đường dẫn HTTP; trang xóa fragment sau khi đọc.
-- Quét hợp lệ đổi lấy một lượt có hạn 3 phút. Lượt quét có nonce riêng gắn với đăng nhập Google; không nhận lại token Google của lượt quét khác. Thời hạn 3 phút không cho phép gửi sau khi GV đã dừng/chốt.
+- Quét hợp lệ đổi lấy một lượt có hạn 3 phút, tính từ khi máy GV chấp nhận yêu cầu `/api/scan`. Ví dụ mã QR hết hạn lúc 10:00:15, người quét thành công lúc 10:00:14 vẫn có thể đăng nhập và xác nhận đến trước 10:03:14 dù QR đã đổi nhiều lần. Người mở mã cũ từ 10:00:15 bị từ chối và phải quét mã mới. Đọc QR bằng camera nhưng chưa mở trang/gửi yêu cầu thành công chưa giữ được lượt. Lượt quét có nonce riêng gắn với đăng nhập Google; không nhận lại token Google của lượt quét khác. Đăng nhập/thử lại không gia hạn 3 phút. Thời hạn 3 phút không cho phép gửi sau khi GV đã dừng/chốt.
 - Mã bí mật có 6 chữ số, sinh riêng khi bắt đầu đợt nhận và giữ nguyên trong đợt đó. Không chứa trong QR và không gửi qua API sinh viên. Nhập sai tối đa 5 lần/lượt; hết lượt thì quét lại. Mã bí mật này là mã lớp học, không phải OTP tài khoản Google.
-- Chỉ máy GV tạo/dừng/chốt phiên. Server công khai chỉ cung cấp trang SV và 3 API quét/đăng nhập/gửi; không cung cấp danh sách lớp, roster, file JSON, sửa điểm danh hoặc API quản trị.
+- Tải lại trang trong cùng tab khôi phục lượt qua `/api/resume`, giữ đúng hạn từ lần `/api/scan` đầu và bước xác thực/biên nhận đã có. sessionStorage chỉ chứa mã lượt và API đã kiểm tra; không chứa Google credential. Đóng tab hoặc mở trình duyệt khác không bảo đảm khôi phục được lượt.
+- Chỉ máy GV tạo/dừng/chốt phiên. Server sinh viên cung cấp trang SV và 4 API scan/resume/login/submit; không cung cấp danh sách lớp, roster, file JSON, sửa điểm danh hoặc API quản trị. Web GV có server riêng trên cổng 8990, yêu cầu khóa GV ngẫu nhiên và origin chính xác.
 - Máy GV xác minh chữ ký RS256 bằng khóa Google, issuer/audience/expiry/nonce, email đã xác minh, miền cho phép và danh sách lớp. Email FPT phải là tài khoản Google Workspace thuộc miền cho phép; Gmail được Google quản lý trực tiếp.
 - Mọi thay đổi JSON được xếp hàng; gửi trùng P không tạo thêm lịch sử. Chốt đợi thao tác lưu đã bắt đầu hoàn tất, từ chối yêu cầu còn lại rồi chuyển ô trống thành A. Ghi file lỗi thì không báo điểm danh thành công và cho phép thử lại.
 - Nếu GV đã ghi A thủ công, SV không tự đổi A thành P qua QR; cần GV kiểm tra. Lịch sử phân biệt **Điểm danh QR · Google** và điểm danh thủ công.
-- Dừng/chốt/khởi động lại app làm mất toàn bộ token/lượt quét trong RAM. P/A đã lưu vẫn còn. Mỗi đợt nhận tối đa 3 giờ; hết hạn cần quay lại mở đợt mới. QR không chứng minh vị trí vật lý của người quét.
+- Dừng/chốt vô hiệu hóa token/lượt quét ngay; chúng bị xóa khỏi RAM khi server kết thúc. Khởi động lại app không khôi phục các lượt này. P/A đã lưu vẫn còn. Mỗi đợt nhận tối đa 3 giờ; hết hạn cần quay lại mở đợt mới. QR không chứng minh vị trí vật lý của người quét.
 
 ## Dữ liệu
 
@@ -67,7 +68,7 @@ Kết nối hoạt động trong lúc cửa sổ QR và app còn mở. Đóng c�
 
 Đã có kiểm thử chữ ký RSA bằng khóa thử riêng, từ chối token giả/sai audience/hết hạn/nonce/email, QR 15 giây, lượt quét 3 phút, mã bí mật, gửi đồng thời/trùng, lỗi ghi file, chốt trong lúc lưu, dừng khi đang xác thực và HTTP thực tế lưu/đọc JSON. Giao diện cấu hình được kiểm tra ở 800×600. Đây không phải bằng chứng đã đăng nhập Google bằng tài khoản thật.
 
-Người dùng đã nhập Client ID loại Web application. Cần thêm đúng origin của đợt QR vào Google Authorized JavaScript origins và nghiệm thu đăng nhập Google thật. Không có chế độ bỏ qua xác thực trong bản release. Chưa triển khai trang GV giả lập FAP và Chrome extension; các phần này thuộc phase sau.
+Người dùng đã nhập Client ID loại Web application. Cần thêm đúng origin của đợt QR vào Google Authorized JavaScript origins và nghiệm thu đăng nhập Google thật. Không có chế độ bỏ qua xác thực trong bản release. Trang GV/extension được bổ sung trong [Phase 4](phase-4.md); web dùng cùng dữ liệu Windows có ở [v0.4.0](end-to-end-improvements.md).
 
 Kết quả ngày 15/09/2026: **62/62 kiểm thử đạt**, phân tích mã không có lỗi, build Windows release thành công. Native đã tạo Quick Tunnel, tải trang và đổi lượt quét qua HTTPS công khai, từ chối token Google giả, tự đổi QR và từ chối QR cũ, chốt thành A/A/A trên 3 SV giả rồi đóng server/tunnel. Chrome ở 390×844 đã kiểm tra form, sai mã/nhập lại, callback đăng nhập giả dành riêng cho test và lưu P. Không sử dụng roster thật trong các phiên công khai thử nghiệm.
 

@@ -37,7 +37,7 @@ export async function startServer({port=8990,directory=process.env.FAP_MOCK_DATA
       if(publicOrigin && req.url.startsWith('/api/') && (!remote || req.headers.authorization!==`Bearer ${accessKey}`)) return reply(403,{error:'Khóa kết nối không hợp lệ. Mở lại liên kết trên máy GV.'});
       if(!remote && req.headers['sec-fetch-site']==='cross-site') return reply(403,{error:'Chỉ nhận yêu cầu từ trang giả lập.'});
       if(req.method==='GET' && req.url==='/api/state') return reply(200,state);
-      const assets={'/':'index.html','/app.mjs':'app.mjs','/connection.mjs':'connection.mjs','/xlsx-importer.mjs':'xlsx-importer.mjs','/style.css':'style.css'};
+      const assets={'/':'index.html','/app.mjs':'app.mjs','/connection.mjs':'connection.mjs','/xlsx-importer.mjs':'xlsx-importer.mjs','/style.css':'style.css','/workspace.mjs':'workspace.mjs','/reports.mjs':'reports.mjs'};
       if(req.method==='GET' && Object.hasOwn(assets,req.url)) {
         const name=assets[req.url];
         res.writeHead(200,{'Content-Type':name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css':'text/javascript'});

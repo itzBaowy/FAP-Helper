@@ -162,6 +162,7 @@ class AttendanceService {
       groupId,
       CourseAttendance(
         plannedTotal: data.plannedTotal,
+        absenceWarningPercent: data.absenceWarningPercent,
         sessions: [...data.sessions.where((s) => s.id != session.id), session],
         history: [...data.history, ...events],
       ),
@@ -328,6 +329,7 @@ class AttendanceService {
       groupId,
       CourseAttendance(
         plannedTotal: total,
+        absenceWarningPercent: data.absenceWarningPercent,
         sessions: data.sessions,
         history: [
           ...data.history,
@@ -336,6 +338,34 @@ class AttendanceService {
             action: 'total',
             before: data.plannedTotal?.toString(),
             after: total?.toString(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Markbook setWarningThreshold(
+    Markbook book,
+    String groupId,
+    int? percent,
+    DateTime now,
+  ) {
+    _group(book, groupId);
+    final data = book.attendanceFor(groupId);
+    if (percent == data.absenceWarningPercent) return book;
+    return book.withAttendance(
+      groupId,
+      CourseAttendance(
+        plannedTotal: data.plannedTotal,
+        absenceWarningPercent: percent,
+        sessions: data.sessions,
+        history: [
+          ...data.history,
+          AttendanceEvent(
+            at: _auditTime(now),
+            action: 'warning_threshold',
+            before: data.absenceWarningPercent?.toString(),
+            after: percent?.toString(),
           ),
         ],
       ),

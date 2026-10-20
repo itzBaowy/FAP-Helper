@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:fap_helper_v1/data/google_identity.dart';
 import 'package:fap_helper_v1/data/qr_settings.dart';
+import 'package:fap_helper_v1/data/qr_collection.dart';
 import 'package:fap_helper_v1/domain/attendance_service.dart';
 import 'package:fap_helper_v1/ui/qr_attendance_dialog.dart';
 
@@ -27,6 +28,99 @@ class _FixtureIdentity implements IdentityVerifier {
 class _LocalHttp extends HttpOverrides {}
 
 void main() {
+  testWidgets(
+    'a native dialog never shows, stops or closes a different web QR session',
+    (tester) async {
+      const service = AttendanceService();
+      const group = 'PRM393/SE1920';
+      const first = '2026-09-07/1', second = '2026-09-10/1';
+      final now = DateTime(2026, 9, 10, 10);
+      var book = service.open(attendanceFixture(), group, first, now);
+      const settings = QrSettings(
+        clientId: 'test.apps.googleusercontent.com',
+        connection: 'local',
+      );
+      final collection = QrCollection(
+        readBook: () => book,
+        saveBook: (next) async => book = next,
+        loadAssets: () async => {'/': '<html></html>'},
+        createVerifier: (_) => _FixtureIdentity(),
+        port: 0,
+      );
+      addTearDown(() async {
+        await collection.stop(immediate: true);
+        collection.dispose();
+      });
+      await tester.runAsync(
+        () => collection.start(
+          groupId: group,
+          sessionId: first,
+          configuration: settings,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => QrAttendanceDialog(
+                    groupId: group,
+                    sessionId: first,
+                    collection: collection,
+                    readBook: () => book,
+                    onSave: (_) async {},
+                    loadSettings: () async => settings,
+                  ),
+                ),
+                child: const Text('Open QR'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open QR'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chốt danh sách'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        await collection.stop(immediate: true);
+        book = service.open(
+          service.close(book, group, first, now),
+          group,
+          second,
+          now,
+        );
+        await collection.start(
+          groupId: group,
+          sessionId: second,
+          configuration: settings,
+        );
+      });
+      await tester.pump();
+      await tester.tap(find.text('Xác nhận chốt'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Đợt QR đã thay đổi'), findsOneWidget);
+      expect(find.byType(QrImageView), findsNothing);
+      expect(collection.active, true);
+      expect(
+        book
+            .attendanceFor(group)
+            .sessions
+            .singleWhere((s) => s.id == second)
+            .state
+            .name,
+        'open',
+      );
+      await tester.tap(find.text('Quay lại bảng điểm danh'));
+      await tester.pumpAndSettle();
+      expect(collection.active, true);
+      expect(collection.host!.sessionId, second);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets(
     'live QR roster reflects durable HTTP saves once and can hide names',
     (tester) async {
@@ -177,6 +271,10 @@ void main() {
       await tester.runAsync(
         () => post('/api/login', {'ticket': ticket, 'credential': 'fixture'}),
       );
+      final resumed = await tester.runAsync(
+        () => post('/api/resume', {'ticket': ticket}),
+      );
+      expect(resumed!['identity'], containsPair('rollNumber', 'SE000001'));
       await tester.runAsync(
         () =>
             post('/api/submit', {'ticket': ticket, 'secret': ''}, status: 503),
@@ -242,6 +340,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Trần Bình'), findsNothing);
       expect(find.text('Lê Chi'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('show-qr-roster')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('show-qr-roster')));
       await tester.pumpAndSettle();
       expect(find.text('Lê Chi'), findsNothing);

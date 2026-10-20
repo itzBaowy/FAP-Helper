@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 
 import '../data/attendance_csv.dart';
 import '../data/windows_file_picker.dart';
+import '../data/markbook_workspace.dart';
+import '../data/qr_collection.dart';
 import '../domain/attendance_models.dart';
 import '../domain/attendance_service.dart';
 import '../domain/markbook.dart';
@@ -41,6 +43,8 @@ class AttendanceScreen extends StatefulWidget {
     this.initialSessionId,
     this.pickCsv,
     this.exporter,
+    this.workspace,
+    this.collection,
   });
   final Markbook book;
   final String groupId;
@@ -50,6 +54,8 @@ class AttendanceScreen extends StatefulWidget {
   final String? initialSessionId;
   final Future<String?> Function(String)? pickCsv;
   final AttendanceCsv? exporter;
+  final MarkbookWorkspace? workspace;
+  final QrCollection? collection;
   @override
   State<AttendanceScreen> createState() => _AttendanceScreenState();
 }
@@ -80,6 +86,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
+    widget.workspace?.addListener(_refreshBook);
     if (widget.initialDate != null && widget.initialDate!.isAfter(_through)) {
       _through = widget.initialDate!;
     }
@@ -132,11 +139,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   void dispose() {
+    widget.workspace?.removeListener(_refreshBook);
     _timer?.cancel();
     _search.dispose();
     _horizontal.dispose();
     _vertical.dispose();
     super.dispose();
+  }
+
+  void _refreshBook() {
+    final current = widget.workspace?.book;
+    if (!mounted || current == null) return;
+    if (!current.groups.any((g) => g.id == widget.groupId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.maybePop(context);
+      });
+      return;
+    }
+    setState(() => _book = current);
+  }
+
+  Future<void> _saveBook(Markbook next) async {
+    final workspace = widget.workspace;
+    if (workspace == null) {
+      await widget.onSave(next);
+    } else {
+      await workspace.replace(next, expected: _book);
+    }
   }
 
   Future<void> _error(Object error) async {
@@ -169,9 +198,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _saving = true);
     try {
       final next = change();
-      if (!identical(next, _book)) await widget.onSave(next);
+      if (!identical(next, _book)) await _saveBook(next);
       if (!mounted) return;
-      setState(() => _book = next);
+      setState(() => _book = widget.workspace?.book ?? next);
       if (success != null) _toast(success);
     } catch (error) {
       await _error(error);
@@ -246,12 +275,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => QrAttendanceDialog(
+        collection: widget.collection,
         groupId: widget.groupId,
         sessionId: _selected.session.id,
         readBook: () => _book,
         onSave: (next) async {
-          await widget.onSave(next);
-          if (mounted) setState(() => _book = next);
+          await _saveBook(next);
+          if (mounted) setState(() => _book = widget.workspace?.book ?? next);
         },
       ),
     );
@@ -288,6 +318,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (reason == null || !mounted) return;
     await _commit(
       () => _service.cancel(_book, widget.groupId, session.id, _now, reason),
+    );
+  }
+
+  Future<void> _setWarningThreshold() async {
+    final value = await attendanceInput(
+      context,
+      title: 'Cảnh báo chuyên cần',
+      description: 'Cảnh báo khi tỷ lệ vắng đạt hoặc vượt ngưỡng này. Đây là ngưỡng do giảng viên cấu hình; không tự kết luận điều kiện dự thi. Cần nhập tổng số buổi để tính tỷ lệ. Để trống để tắt cảnh báo.',
+      initial: _data.absenceWarningPercent?.toString() ?? '',
+      total: true,
+      maximum: 100,
+      numberLabel: 'Ngưỡng vắng (%)',
+    );
+    if (value == null || !mounted) return;
+    await _commit(
+      () => _service.setWarningThreshold(
+        _book,
+        widget.groupId,
+        value.isEmpty ? null : int.parse(value),
+        _now,
+      ),
+      success: 'Đã lưu ngưỡng cảnh báo.',
     );
   }
 
@@ -424,6 +476,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     onPressed: _saving ? null : _makeup,
                     icon: const Icon(Icons.event_available, size: 18),
                     label: const Text('Thêm học bù'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _saving ? null : _setWarningThreshold,
+                    icon: const Icon(
+                      Icons.notification_important_outlined,
+                      size: 18,
+                    ),
+                    label: Text(
+                      'Cảnh báo vắng${_data.absenceWarningPercent == null ? '' : ' ≥ ${_data.absenceWarningPercent}%'}',
+                    ),
                   ),
                   TextButton.icon(
                     onPressed: _saving
@@ -767,6 +829,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   DataRow _studentRow(Student student, List<ScheduledSession> visible) {
     final summary = _service.summary(_data, student.rollNumber);
+    final warning =
+        _data.absenceWarningPercent != null &&
+        summary.absencePercent != null &&
+        summary.absencePercent! >= _data.absenceWarningPercent!;
     return DataRow(
       cells: [
         DataCell(SelectableText(student.rollNumber)),
@@ -790,6 +856,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             summary.absencePercent == null
                 ? '—'
                 : '${summary.absencePercent!.toStringAsFixed(1)}%',
+            style: warning
+                ? const TextStyle(
+                    color: Color(0xffa34d21),
+                    fontWeight: FontWeight.w700,
+                  )
+                : null,
           ),
         ),
         for (final item in visible) DataCell(_markCell(student, item.session)),

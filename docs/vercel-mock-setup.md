@@ -1,4 +1,14 @@
-# Đưa trang GV giả lập lên Vercel
+# Đưa web giảng viên lên Vercel
+
+## Windows v0.4.0: dùng cùng dữ liệu app
+
+Triển khai `deploy/mock-fap` sau khi chạy `tool/prepare_teacher.ps1` (hoặc `tool/prepare_mock_vercel.ps1`). Trong app Windows mới, vào **Cấu hình → Web giảng viên · cùng dữ liệu Windows**, bật **Kết nối từ Internet**, nhập origin HTTPS của website đã triển khai, kết nối và sao chép liên kết mở web. Web sẽ hiện **Windows · nguồn dữ liệu chính**. Mọi P/A, cấu hình và chốt được lưu vào `%APPDATA%\FAPHelper\FA26.json`; không chạy server Node cho chế độ này.
+
+Đóng tab web không tắt nhận QR; giữ app Windows chạy và chủ động dừng/chốt khi kết thúc. Nếu kết nối mất, web giữ bản nháp trong tab và yêu cầu đối chiếu trước khi lưu lại. Khóa GV thay khi kết nối lại, cần mở liên kết mới. Cổng 8990 chỉ dùng cho một server: dừng mock Node trước khi bật kết nối Windows.
+
+Chế độ Internet dùng Quick Tunnel, phụ thuộc app/mạng máy GV và không có cam kết uptime. Có thể dùng chế độ cùng máy để thử toàn bộ giao diện mà không cần triển khai Vercel. [Hướng dẫn v0.4.0](end-to-end-improvements.md) có quy trình và giới hạn kiểm chứng.
+
+Các bước server Node bên dưới dành cho **giả lập riêng**. Chế độ đó hiện **Giả lập · dữ liệu riêng** và tiếp tục lưu `FAPHelper-Mock`, phục vụ kiểm tra extension.
 
 Áp dụng cho extension **v0.4.2**. Giao diện ở domain Vercel cố định; chương trình trên máy GV mở kết nối Cloudflare HTTPS, kiểm tra khóa truy cập và lưu JSON như trước. Không dùng database. Máy GV phải bật chương trình kết nối và có Internet khi dùng trang.
 

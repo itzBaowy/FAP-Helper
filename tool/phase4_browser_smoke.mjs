@@ -7,7 +7,7 @@ import {startServer} from '../mock-fap/server.mjs';
 import {parseCsv} from '../extension/csv.mjs';
 import {interactWithMock} from '../extension/adapter.mjs';
 const require=createRequire(import.meta.url);
-const {chromium}=require('../build/browser-tools/node_modules/playwright');
+const {chromium}=require(process.env.FAP_PLAYWRIGHT_MODULE||'../build/browser-tools/node_modules/playwright');
 const directory=await mkdtemp(path.join(os.tmpdir(),'fap-mock-browser-'));
 let server,context;
 const checks=[];
@@ -17,7 +17,7 @@ const accessKey='a'.repeat(43);
 const frontend=publicOrigin||'http://127.0.0.1:8990';
 try {
   server=await startServer({port:0,directory,publicOrigin,accessKey});
-  context=await chromium.launchPersistentContext('',{channel:'chromium',headless:true,viewport:{width:1360,height:900},args:['--enable-unsafe-extension-debugging'],ignoreDefaultArgs:['--disable-extensions']});
+  context=await chromium.launchPersistentContext('',{channel:process.env.FAP_BROWSER_CHANNEL||'chromium',headless:true,viewport:{width:1360,height:900},args:['--enable-unsafe-extension-debugging'],ignoreDefaultArgs:['--disable-extensions']});
   const page=await context.newPage(),errors=[];
   const testOrigin=`http://127.0.0.1:${server.address().port}`;
   if(remote){
@@ -26,7 +26,7 @@ try {
     await page.route(frontend+'/**',async route=>{
       const pathname=new URL(route.request().url()).pathname;
       const name=pathname==='/'?'index.html':pathname.slice(1);
-      assert.ok(['index.html','app.mjs','connection.mjs','xlsx-importer.mjs','style.css'].includes(name));
+      assert.ok(['index.html','app.mjs','connection.mjs','xlsx-importer.mjs','style.css','workspace.mjs','reports.mjs'].includes(name));
       await route.fulfill({headers,contentType:name.endsWith('.html')?'text/html':name.endsWith('.css')?'text/css':'text/javascript',body:await readFile('deploy/mock-fap/public/'+name)});
     });
   }
@@ -48,6 +48,7 @@ try {
   assert.deepEqual(await page.locator('select[data-mark]').evaluateAll(nodes=>nodes.map(n=>n.value)),['','','']);
   assert.equal(await page.locator('#stat-pending').textContent(),'3');
   const sessions=parseCsv(await readFile('mock-fap/demo/FA26-demo.csv','utf8'));
+  await page.locator('#session').selectOption(sessions[0].id);
   const run=(s,submit=false,revision=null)=>page.evaluate(`(${interactWithMock.toString()})(${JSON.stringify(s)},${submit},${JSON.stringify(revision)},${JSON.stringify(publicOrigin)})`);
   assert.equal((await run(sessions[1])).ok,false);checks.push('wrong session blocked');
   assert.equal((await run({...sessions[0],students:sessions[0].students.slice(1)})).ok,false);checks.push('missing student blocked');

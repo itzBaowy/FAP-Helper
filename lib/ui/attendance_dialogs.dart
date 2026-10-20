@@ -10,6 +10,8 @@ Future<String?> attendanceInput(
   required String description,
   String initial = '',
   bool total = false,
+  int maximum = 200,
+  String numberLabel = 'Số buổi theo lịch tuần',
 }) => showDialog<String>(
   context: context,
   builder: (_) => _InputDialog(
@@ -17,6 +19,8 @@ Future<String?> attendanceInput(
     description: description,
     initial: initial,
     total: total,
+    maximum: maximum,
+    numberLabel: numberLabel,
   ),
 );
 
@@ -26,9 +30,13 @@ class _InputDialog extends StatefulWidget {
     required this.description,
     required this.initial,
     required this.total,
+    required this.maximum,
+    required this.numberLabel,
   });
   final String title, description, initial;
   final bool total;
+  final int maximum;
+  final String numberLabel;
   @override
   State<_InputDialog> createState() => _InputDialogState();
 }
@@ -64,7 +72,7 @@ class _InputDialogState extends State<_InputDialog> {
                   ? TextInputType.number
                   : TextInputType.multiline,
               decoration: InputDecoration(
-                labelText: widget.total ? 'Số buổi theo lịch tuần' : 'Lý do',
+                labelText: widget.total ? widget.numberLabel : 'Lý do',
               ),
               validator: (value) {
                 final text = (value ?? '').trim();
@@ -73,8 +81,8 @@ class _InputDialogState extends State<_InputDialog> {
                 }
                 if (text.isEmpty) return null;
                 final number = int.tryParse(text);
-                return number == null || number < 1 || number > 200
-                    ? 'Nhập số nguyên từ 1 đến 200 hoặc để trống.'
+                return number == null || number < 1 || number > widget.maximum
+                    ? 'Nhập số nguyên từ 1 đến ${widget.maximum} hoặc để trống.'
                     : null;
               },
             ),
@@ -253,6 +261,7 @@ Future<void> showAttendanceHistory(
                           'close_absent' => 'Chốt: chưa ghi nhận → A',
                           'close' => 'Chốt buổi',
                           'total' => 'Đổi tổng số buổi',
+                          'warning_threshold' => 'Đổi ngưỡng cảnh báo vắng',
                           'cancel' => 'Đánh dấu nghỉ',
                           'restore' => 'Khôi phục buổi',
                           'makeup' => 'Thêm buổi học bù',

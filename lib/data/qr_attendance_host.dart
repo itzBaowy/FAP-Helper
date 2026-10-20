@@ -66,7 +66,35 @@ class QrAttendanceHost {
   bool _disposed = false;
   String get localOrigin => 'http://localhost:${_server!.port}';
   bool get accepting =>
-      _accepting && !_disposed && _now().isBefore(_windowExpires!);
+      _accepting &&
+      !_disposed &&
+      _now().isBefore(_windowExpires!) &&
+      readBook()
+          .attendanceFor(groupId)
+          .sessions
+          .any((s) => s.id == sessionId && s.state == SessionState.open);
+
+  Map<String, int> get progress => {
+    'activeScans': _tickets.values
+        .where((t) => _now().isBefore(t.expires))
+        .length,
+    'verifiedStudents': _tickets.values
+        .where((t) => _now().isBefore(t.expires) && t.student != null)
+        .map((t) => t.student!.rollNumber)
+        .toSet()
+        .length,
+    'savedPresent':
+        readBook()
+            .attendanceFor(groupId)
+            .sessions
+            .where((s) => s.id == sessionId)
+            .firstOrNull
+            ?.marks
+            .values
+            .where((m) => m == AttendanceMark.present)
+            .length ??
+        0,
+  };
   DateTime get qrExpires {
     currentToken;
     return _qrExpires!;
@@ -112,6 +140,7 @@ class QrAttendanceHost {
     }
     _origin = uri.origin;
     _apiOrigin = apiOrigin;
+    _assertOpen();
     _windowExpires = _now().add(const Duration(hours: 3));
     _accepting = true;
   }
@@ -177,15 +206,35 @@ class QrAttendanceHost {
       _now().add(const Duration(minutes: 3)),
     );
     _tickets[id] = ticket;
+    return _scanDetails(id, ticket);
+  }
+
+  Map<String, Object?> _scanDetails(String id, _ScanTicket ticket) {
     final group = readBook().groups.firstWhere((g) => g.id == groupId);
     return {
       'ticket': id,
       'nonce': ticket.nonce,
       'expiresAt': ticket.expires.toUtc().toIso8601String(),
+      'serverTime': _now().toUtc().toIso8601String(),
       'clientId': clientId,
       'requiresSecret': requireSecret,
       'classLabel': group.label,
       'sessionLabel': '$sessionId · FA26',
+    };
+  }
+
+  /// Restore only the bearer ticket's own state; never issue or extend a scan.
+  Map<String, Object?> resume(String id) {
+    final ticket = _ticket(id);
+    return {
+      ..._scanDetails(id, ticket),
+      'submitted': ticket.submitted,
+      if (ticket.student case final Student student)
+        'identity': {
+          'email': student.email,
+          'fullName': student.fullName,
+          'rollNumber': student.rollNumber,
+        },
     };
   }
 
@@ -333,6 +382,11 @@ class QrAttendanceHost {
     verifier.dispose();
   }
 
+  /// Refuse every ticket immediately while keeping HTTP alive for a clear 410.
+  void deactivate() {
+    _accepting = false;
+  }
+
   Future<void> _handle(HttpRequest request) async {
     final response = request.response;
     response.headers.set('Cache-Control', 'no-store');
@@ -351,6 +405,7 @@ class QrAttendanceHost {
         '/api/scan',
         '/api/login',
         '/api/submit',
+        '/api/resume',
       ].contains(request.uri.path);
       if (apiPath &&
           (request.method == 'OPTIONS' || request.method == 'POST')) {
@@ -398,6 +453,7 @@ class QrAttendanceHost {
             '/api/scan',
             '/api/login',
             '/api/submit',
+            '/api/resume',
           ].contains(request.uri.path)) {
         final origin = request.headers.value('origin');
         if (origin != _origin) {
@@ -433,6 +489,7 @@ class QrAttendanceHost {
         final result = switch (request.uri.path) {
           '/api/scan' => scan(field('token')),
           '/api/login' => await login(field('ticket'), field('credential')),
+          '/api/resume' => resume(field('ticket')),
           _ => await submit(field('ticket'), field('secret')),
         };
         response.headers.contentType = ContentType.json;

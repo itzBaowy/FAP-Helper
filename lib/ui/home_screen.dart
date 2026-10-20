@@ -7,6 +7,10 @@ import 'package:flutter/services.dart';
 
 import '../data/excel_importer.dart';
 import '../data/markbook_store.dart';
+import '../data/markbook_workspace.dart';
+import '../data/qr_collection.dart';
+import '../data/teacher_connection.dart';
+import 'teacher_connection_panel.dart';
 import '../data/windows_file_picker.dart';
 import '../domain/markbook.dart';
 import '../domain/attendance_service.dart';
@@ -37,6 +41,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late final MarkbookWorkspace _workspace = MarkbookWorkspace(widget.store);
+  late final QrCollection _collection = QrCollection(
+    readBook: () => _workspace.requireBook,
+    saveBook: (next) => _workspace.replace(next, expected: _workspace.book),
+    loadAssets: loadStudentAssets,
+    loadSettings: () => QrSettings.load(
+      source: File(
+        '${widget.store.directory.path}${Platform.pathSeparator}qr-settings.json',
+      ),
+    ),
+  );
+  late final TeacherConnection _teacherConnection = TeacherConnection(
+    workspace: _workspace,
+    collection: _collection,
+  );
   Markbook? _book;
   bool _loading = true;
   bool _busy = false;
@@ -53,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _workspace.addListener(_onWorkspaceChanged);
     _now = (widget.now ?? vietnamNow)();
     _timer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) setState(() => _now = (widget.now ?? vietnamNow)());
@@ -62,9 +82,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _teacherConnection.dispose();
+    _collection.dispose();
+    _workspace.removeListener(_onWorkspaceChanged);
+    _workspace.dispose();
     _timer?.cancel();
     _search.dispose();
     super.dispose();
+  }
+
+  void _onWorkspaceChanged() {
+    if (mounted) setState(() => _book = _workspace.book);
   }
 
   Future<void> _load() async {
@@ -73,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadError = null;
     });
     try {
-      final result = await widget.store.load();
+      final result = await _workspace.load();
       if (!mounted) return;
       setState(() {
         _book = result.markbook;
@@ -101,11 +129,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_busy || _loadError != null) return;
     setState(() => _busy = true);
     try {
+      _requireStoppedQr();
       final path = await (widget.pickFile ?? WindowsFilePicker().pickExcel)();
       if (path == null) return;
       final preview = await compute(readWorkbookFile, path);
       if (!mounted) return;
       // Validate compatibility before asking the user to confirm re-import.
+      final expected = _book;
       final candidate = preview.canSave
           ? (_book?.mergeImport(preview.markbook) ?? preview.markbook)
           : preview.markbook;
@@ -116,7 +146,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ImportDialog(preview: preview, replacing: _book != null),
       );
       if (accepted != true) return;
-      await widget.store.save(candidate);
+      _requireStoppedQr();
+      await _workspace.replace(candidate, expected: expected);
       if (!mounted) return;
       setState(() {
         _book = candidate;
@@ -157,13 +188,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_busy || _book == null || _loadError != null) return;
     setState(() => _busy = true);
     try {
+      _requireStoppedQr();
       final scope = await showDialog<String>(
         context: context,
         builder: (_) => ResetAttendanceDialog(book: _book!),
       );
       if (scope == null) return;
-      final result = await widget.store.reset(
-        _book!,
+      _requireStoppedQr();
+      final result = await _workspace.reset(
         groupId: scope == '*' ? null : scope,
       );
       if (!mounted) return;
@@ -208,6 +240,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _requireStoppedQr() {
+    if (_collection.active || _collection.busy) {
+      throw const FormatException(
+        'Dừng nhận QR trên web hoặc Windows trước khi import/reset dữ liệu.',
+      );
+    }
+  }
+
   Widget _importButton() => FilledButton.icon(
     onPressed: _busy || _loading || _loadError != null ? null : _import,
     icon: _busy
@@ -235,9 +275,10 @@ class _HomeScreenState extends State<HomeScreen> {
           now: widget.now,
           initialDate: date,
           initialSessionId: sessionId,
+          workspace: _workspace,
+          collection: _collection,
           onSave: (updated) async {
-            await widget.store.save(updated);
-            if (mounted) setState(() => _book = updated);
+            await _workspace.replace(updated, expected: _book);
           },
         ),
       ),
@@ -298,6 +339,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _heading(),
                                 const SizedBox(height: 24),
                                 if (_page == 3) ...[
+                                  TeacherConnectionPanel(
+                                    connection: _teacherConnection,
+                                  ),
+                                  const SizedBox(height: 20),
                                   QrSettingsPanel(
                                     loadSettings: () => QrSettings.load(
                                       source: File(
@@ -533,7 +578,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const Padding(
           padding: EdgeInsets.only(bottom: 20),
           child: Text(
-            'v0.3.4',
+            'v0.4.0',
             style: TextStyle(color: Color(0xff8bb5ac), fontSize: 11),
           ),
         ),

@@ -10,7 +10,7 @@
         {"key": "Cache-Control", "value": "no-store"},
         {"key": "X-Content-Type-Options", "value": "nosniff"},
         {"key": "Referrer-Policy", "value": "no-referrer"},
-        {"key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://*.trycloudflare.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"}
+        {"key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://*.trycloudflare.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"}
       ]
     }
   ]

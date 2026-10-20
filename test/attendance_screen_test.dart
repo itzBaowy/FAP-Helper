@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fap_helper_v1/data/attendance_csv.dart';
+import 'package:fap_helper_v1/data/markbook_store.dart';
+import 'package:fap_helper_v1/data/markbook_workspace.dart';
 import 'package:fap_helper_v1/domain/attendance_models.dart';
 import 'package:fap_helper_v1/domain/attendance_service.dart';
 import 'package:fap_helper_v1/domain/markbook.dart';
@@ -30,6 +32,7 @@ void main() {
     Markbook book,
     Future<void> Function(Markbook) save, {
     AttendanceCsv? exporter,
+    MarkbookWorkspace? workspace,
     double width = 1440,
     double height = 940,
   }) async {
@@ -45,6 +48,7 @@ void main() {
           now: () => now,
           onSave: save,
           exporter: exporter,
+          workspace: workspace,
           pickCsv: (_) async => 'attendance.csv',
         ),
       ),
@@ -60,6 +64,49 @@ void main() {
     await tester.tap(find.text(label));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('mounted native roster receives shared web writes', (
+    tester,
+  ) async {
+    late Directory directory;
+    late MarkbookWorkspace workspace;
+    await tester.runAsync(() async {
+      directory = await Directory.systemTemp.createTemp('fap-native-shared-');
+      workspace = MarkbookWorkspace(MarkbookStore(directory));
+      await workspace.replace(
+        service.open(attendanceFixture(), group, first, now),
+        expected: null,
+      );
+    });
+    addTearDown(() async {
+      workspace.dispose();
+      await directory.delete(recursive: true);
+    });
+    await mount(tester, workspace.book!, (_) async {}, workspace: workspace);
+    expect(
+      find.textContaining('Buổi đang chọn: 0 P · 0 A · 3 chưa ghi nhận'),
+      findsOneWidget,
+    );
+    await tester.runAsync(
+      () => workspace.change(
+        (book) => service.mark(
+          book,
+          group,
+          first,
+          'SE000002',
+          AttendanceMark.present,
+          now,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Buổi đang chọn: 1 P · 0 A · 2 chưa ghi nhận'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('small desktop window remains usable without layout overflow', (
     tester,

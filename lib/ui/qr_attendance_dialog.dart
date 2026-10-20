@@ -7,7 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../data/google_identity.dart';
 import '../data/qr_attendance_host.dart';
 import '../data/qr_settings.dart';
-import '../data/quick_tunnel.dart';
+import '../data/qr_collection.dart';
 import '../domain/attendance_models.dart';
 import '../domain/markbook.dart';
 import 'widgets.dart';
@@ -22,6 +22,7 @@ class QrAttendanceDialog extends StatefulWidget {
     required this.onSave,
     this.loadSettings,
     this.createVerifier,
+    this.collection,
   });
   final String groupId;
   final String sessionId;
@@ -29,28 +30,64 @@ class QrAttendanceDialog extends StatefulWidget {
   final Future<void> Function(Markbook) onSave;
   final Future<QrSettings> Function()? loadSettings;
   final IdentityVerifier Function(QrSettings)? createVerifier;
+  final QrCollection? collection;
   @override
   State<QrAttendanceDialog> createState() => _QrAttendanceDialogState();
 }
 
 class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
   QrSettings? _settings;
-  String get _connection => _settings?.connection ?? 'quick';
+  String get _connection =>
+      _collection.settings?.connection ?? _settings?.connection ?? 'quick';
   bool _secret = false;
   bool _showRoster = true;
   bool _busy = true;
   String? _error;
-  String? _origin;
-  QrAttendanceHost? _host;
-  QuickTunnel? _tunnel;
+  String? get _origin => _host == null ? null : _collection.studentOrigin;
+  QrAttendanceHost? get _host {
+    final host = _collection.host;
+    return host?.groupId == widget.groupId &&
+            host?.sessionId == widget.sessionId
+        ? host
+        : null;
+  }
+
+  late final QrCollection _collection =
+      widget.collection ??
+      QrCollection(
+        readBook: widget.readBook,
+        saveBook: widget.onSave,
+        loadSettings: widget.loadSettings,
+        createVerifier: widget.createVerifier,
+        loadAssets: () async {
+          final pages = await Future.wait(
+            [
+              'index.html',
+              'app.js',
+              'style.css',
+            ].map((name) => rootBundle.loadString('assets/student/$name')),
+          );
+          return {'/': pages[0], '/app.js': pages[1], '/style.css': pages[2]};
+        },
+      );
   Timer? _timer;
-  bool _closed = false;
+  bool get _closed => _host != null && _collection.closed;
+  bool get _working => _busy || _collection.busy;
   bool get _active => _host?.accepting ?? false;
 
   @override
   void initState() {
     super.initState();
+    _collection.addListener(_collectionChanged);
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _collectionChanged(),
+    );
     _load();
+  }
+
+  void _collectionChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -81,88 +118,19 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
       _busy = true;
       _error = null;
     });
-    QrAttendanceHost? host;
     try {
-      final settings = _settings;
-      if (settings == null || settings.clientId.isEmpty) {
+      if (_settings == null || _settings!.clientId.isEmpty) {
         throw const FormatException(
           'Vào Cấu hình ở sidebar để nhập Google Client ID trước khi điểm danh QR.',
         );
       }
-      settings.validate();
-      if (_connection == 'fixed' && settings.publicOrigin.isEmpty) {
-        throw const FormatException(
-          'Nhập địa chỉ HTTPS cố định đã chuyển tiếp tới localhost:8787.',
-        );
-      }
-      final pages = await Future.wait(
-        [
-          'index.html',
-          'app.js',
-          'style.css',
-        ].map((name) => rootBundle.loadString('assets/student/$name')),
-      );
-      if (!mounted) return;
-      host = QrAttendanceHost(
+      await _collection.start(
         groupId: widget.groupId,
         sessionId: widget.sessionId,
-        clientId: settings.clientId,
         requireSecret: _secret,
-        verifier:
-            widget.createVerifier?.call(settings) ??
-            GoogleIdentityVerifier(
-              clientId: settings.clientId,
-              domains: settings.domains,
-            ),
-        readBook: widget.readBook,
-        saveBook: (next) async {
-          await widget.onSave(next);
-          if (mounted) setState(() {});
-        },
-        assets: {'/': pages[0], '/app.js': pages[1], '/style.css': pages[2]},
+        configuration: _settings,
       );
-      _host = host;
-      await host.start(port: 8787);
-      String origin;
-      if (_connection == 'quick' || _connection == 'vercel') {
-        _tunnel = QuickTunnel(
-          onUnexpectedExit: () {
-            if (mounted && _origin != null && !_closed) {
-              unawaited(_host!.stop());
-              _showError(
-                const FormatException(
-                  'Kết nối Internet đã dừng. Kết quả đã lưu vẫn giữ nguyên; quay lại để mở kết nối mới.',
-                ),
-              );
-            }
-          },
-        );
-        origin = await _tunnel!.start(8787);
-      } else {
-        origin = _connection == 'fixed'
-            ? Uri.parse(settings.publicOrigin).origin
-            : host.localOrigin;
-      }
-      if (!mounted) {
-        await host.stop();
-        _tunnel?.stop();
-        return;
-      }
-      final studentOrigin = _connection == 'vercel'
-          ? Uri.parse(settings.publicOrigin).origin
-          : origin;
-      host.activate(
-        studentOrigin,
-        apiOrigin: _connection == 'vercel' ? origin : null,
-      );
-      _origin = studentOrigin;
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
-      });
     } catch (error) {
-      await host?.stop();
-      _tunnel?.stop();
-      _host = null;
       _showError(error);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -170,6 +138,7 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
   }
 
   Future<void> _finish() async {
+    final expectedHost = _host;
     final count = widget
         .readBook()
         .groups
@@ -206,11 +175,12 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
       _error = null;
     });
     try {
-      await _host!.finalize();
-      _closed = true;
-      await _host!.stop();
-      _tunnel?.stop();
-      _timer?.cancel();
+      if (expectedHost == null || !identical(_host, expectedHost)) {
+        throw const FormatException(
+          'Đợt QR đã thay đổi trên giao diện khác. Kiểm tra lại buổi trước khi chốt.',
+        );
+      }
+      await _collection.finalize();
     } catch (error) {
       _showError(error);
     } finally {
@@ -220,16 +190,15 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
 
   Future<void> _leave() async {
     setState(() => _busy = true);
-    await _host?.stop();
-    _tunnel?.stop();
+    if (_host != null) await _collection.stop();
     if (mounted) Navigator.pop(context);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _tunnel?.stop();
-    if (_host != null) unawaited(_host!.stop());
+    _collection.removeListener(_collectionChanged);
+    if (widget.collection == null) _collection.dispose();
     super.dispose();
   }
 
@@ -249,6 +218,7 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
     final absent = session.marks.values
         .where((m) => m == AttendanceMark.absent)
         .length;
+    final error = _error ?? _collection.error;
     return PopScope(
       canPop: false,
       child: Dialog(
@@ -269,12 +239,12 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
                   style: const TextStyle(color: muted),
                 ),
                 const SizedBox(height: 12),
-                if (_busy) const LinearProgressIndicator(),
-                if (_error != null)
+                if (_working) const LinearProgressIndicator(),
+                if (error != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
-                      _error!,
+                      error,
                       style: const TextStyle(color: Colors.red),
                     ),
                   ),
@@ -337,19 +307,19 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
                   children: [
                     if (_origin == null) ...[
                       FilledButton.icon(
-                        onPressed: _busy ? null : _start,
+                        onPressed: _working ? null : _start,
                         icon: const Icon(Icons.qr_code),
                         label: const Text('Bắt đầu nhận QR'),
                       ),
                     ],
                     if (_origin != null && !_closed)
                       FilledButton.icon(
-                        onPressed: _busy ? null : _finish,
+                        onPressed: _working ? null : _finish,
                         icon: const Icon(Icons.lock_outline),
                         label: const Text('Chốt danh sách'),
                       ),
                     TextButton(
-                      onPressed: _busy ? null : _leave,
+                      onPressed: _working ? null : _leave,
                       child: Text(
                         _origin != null && !_closed
                             ? 'Dừng nhận QR và quay lại'
@@ -377,6 +347,11 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
       const SizedBox(height: 12),
       const Text(
         'Client ID, miền email và kết nối được lấy từ mục Cấu hình ở sidebar.',
+        style: TextStyle(color: muted),
+      ),
+      const SizedBox(height: 12),
+      const Text(
+        'QR đổi mỗi 15 giây. Sinh viên đã quét hợp lệ có 3 phút để đăng nhập và xác nhận; đổi QR không ngắt lượt đã quét. Người chưa quét được phải dùng mã mới.',
         style: TextStyle(color: muted),
       ),
       const SizedBox(height: 20),
@@ -439,7 +414,13 @@ class _QrAttendanceDialogState extends State<QrAttendanceDialog> {
           'Đổi QR sau ${(seconds / 1000).ceil().clamp(0, 15)} giây',
           style: const TextStyle(color: teal, fontWeight: FontWeight.w600),
         ),
-        if (_secret) ...[
+        const SizedBox(height: 8),
+        const Text(
+          'Đã quét hợp lệ: tiếp tục trong 3 phút.\nChưa quét được: mã cũ hết hạn, hãy quét mã mới.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: muted, fontSize: 13),
+        ),
+        if (_collection.requireSecret) ...[
           const SizedBox(height: 10),
           const Text('MÃ BÍ MẬT'),
           SelectableText(

@@ -1,7 +1,7 @@
 name: fap_helper_v1
 description: "Ứng dụng quản lý lớp và lịch dạy FA26 dành cho giảng viên."
 publish_to: 'none'
-version: 0.3.4+7
+version: 0.4.0+8
 
 environment:
   sdk: ^3.13.3
@@ -14,6 +14,7 @@ dependencies:
   archive: ^3.6.1
   xml: ^6.6.1
   qr_flutter: ^4.1.0
+  qr: ^3.0.2
   jose: ^0.3.5
 
 dev_dependencies:
@@ -25,3 +26,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/student/
+    - assets/teacher/

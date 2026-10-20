@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="fap-helper-mock" content="1" />
+    <title>FAP Helper — Không gian giảng viên</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <aside>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">f.</span>
+        <div>FAP Helper<small>KHÔNG GIAN GIẢNG VIÊN</small></div>
+      </div>
+      <nav aria-label="Điều hướng">
+        <a href="#workspace" aria-current="page">Điểm danh</a
+        ><a href="#report-panel">Báo cáo chuyên cần</a>
+      </nav>
+      <div class="semester">
+        <span>HỌC KỲ HIỆN TẠI</span><strong>Fall 2026 · FA26</strong>
+        <p>Bắt đầu từ 07/09/2026</p>
+      </div>
+      <div class="sidebar-bottom">
+        <span id="source-label">Chưa xác định nguồn dữ liệu</span>
+        <p>Liên kết riêng chỉ dành cho GV. Sinh viên dùng QR của buổi học.</p>
+      </div>
+    </aside>
+    <div class="page">
+      <div class="topbar">
+        <strong id="connection-status" role="status" aria-live="polite"
+          >Đang kiểm tra kết nối…</strong
+        >
+        <div class="actions">
+          <button id="retry" class="secondary" type="button">
+            Thử kết nối lại</button
+          ><button id="connect" class="secondary" type="button">
+            Đổi liên kết máy GV
+          </button>
+        </div>
+      </div>
+      <main>
+        <header>
+          <div>
+            <div class="eyebrow">QUẢN LÝ LỚP HỌC · FA26</div>
+            <h1>Điểm danh buổi học</h1>
+            <p>
+              Chọn lớp và buổi, nhận QR, kiểm tra kết quả rồi chốt danh sách.
+            </p>
+          </div>
+          <label class="file-button"
+            >Import Excel<input
+              id="import"
+              type="file"
+              accept=".xlsx,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              aria-label="Chọn file FA26.xlsx"
+          /></label>
+        </header>
+        <div id="message" role="status" aria-live="polite">
+          Đang tải dữ liệu…
+        </div>
+        <section id="workspace" hidden>
+          <div class="filters">
+            <label for="group">Lớp học phần<select id="group"></select></label
+            ><label for="session">Buổi học<select id="session"></select></label
+            ><span id="session-state" class="pill"></span>
+          </div>
+          <section id="collection-controls" class="surface" hidden>
+            <div class="actions">
+              <button id="open-session" type="button">Mở buổi</button
+              ><label
+                ><input id="require-secret" type="checkbox" /> QR kèm mã bí
+                mật</label
+              ><button id="start-qr" type="button">Bắt đầu nhận QR</button
+              ><button id="stop-qr" type="button" class="secondary">
+                Dừng nhận QR</button
+              ><button id="close-session" type="button">Chốt danh sách</button
+              ><button id="export-session" type="button" class="secondary">
+                Xuất CSV buổi đã chốt
+              </button>
+            </div>
+            <p id="collection-status"></p>
+          </section>
+          <section id="qr-panel" class="surface qr-layout" hidden>
+            <div>
+              <img
+                id="qr-image"
+                alt="QR dành cho sinh viên của buổi đang nhận"
+                width="256"
+                height="256"
+              />
+              <p id="qr-expiry"></p>
+            </div>
+            <div>
+              <h2>Sinh viên quét mã để bắt đầu</h2>
+              <p>
+                QR đổi mỗi 15 giây. Lượt đã quét hợp lệ tiếp tục trong 3 phút;
+                tải lại trang không gia hạn.
+              </p>
+              <p id="qr-progress"></p>
+              <p id="qr-secret" hidden></p>
+              <label class="privacy-option"
+                ><input id="show-roster" type="checkbox" checked /> Hiển thị
+                danh sách sinh viên trên màn hình này</label
+              >
+              <p class="muted">
+                Tắt danh sách khi trình chiếu QR. Lượt quét chưa xác thực chưa
+                xác định được danh tính.
+              </p>
+            </div>
+          </section>
+          <div id="roster-area">
+            <form id="attendance-form" novalidate>
+              <div class="stats" aria-label="Lọc theo trạng thái điểm danh">
+                <button type="button" data-filter="all">
+                  <span>SINH VIÊN</span><strong id="stat-total">0</strong
+                  ><small>Toàn bộ lớp</small></button
+                ><button type="button" data-filter="P">
+                  <span>CÓ MẶT</span><strong id="stat-present">0</strong
+                  ><small>P trong bảng hiện tại</small></button
+                ><button type="button" data-filter="A">
+                  <span>VẮNG</span><strong id="stat-absent">0</strong
+                  ><small>A trong bảng hiện tại</small></button
+                ><button type="button" data-filter="">
+                  <span>CHƯA GHI NHẬN</span><strong id="stat-pending">0</strong
+                  ><small>Cần kiểm tra</small>
+                </button>
+              </div>
+              <footer>
+                <div class="save-status">
+                  <span id="saved" role="status" aria-live="polite"
+                    >Chưa lưu</span
+                  >
+                  <small id="draft-status"
+                    >Kiểm tra danh sách trước khi lưu.</small
+                  >
+                </div>
+                <div class="actions">
+                  <button id="discard" type="button" class="secondary">
+                    Bỏ thay đổi
+                  </button>
+                  <button type="submit">Lưu điểm danh</button>
+                </div>
+              </footer>
+              <div id="conflicts" class="notice error" hidden>
+                <p id="conflict-message"></p>
+                <div class="actions">
+                  <button id="use-server" type="button" class="secondary">
+                    Dùng kết quả trên máy GV</button
+                  ><button id="keep-draft" type="button">
+                    Đối chiếu và giữ bản nháp
+                  </button>
+                </div>
+              </div>
+              <div class="roster">
+                <div class="table-heading">
+                  <div>
+                    <h2 id="title"></h2>
+                    <p id="detail"></p>
+                  </div>
+                  <span id="count" class="pill"></span>
+                </div>
+                <div class="table-tools">
+                  <label class="search-label" for="search"
+                    >Tìm sinh viên<input
+                      id="search"
+                      type="search"
+                      placeholder="MSSV, họ tên, email hoặc MemberCode" /></label
+                  ><label for="status-filter"
+                    >Trạng thái<select id="status-filter">
+                      <option value="all">Tất cả</option>
+                      <option value="P">Đã có mặt</option>
+                      <option value="A">Vắng</option>
+                      <option value="">Chưa ghi nhận</option>
+                    </select></label
+                  ><span id="visible-count" aria-live="polite"></span>
+                </div>
+                <div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">STT</th>
+                        <th scope="col">MSSV</th>
+                        <th scope="col">SINH VIÊN</th>
+                        <th scope="col">MEMBER CODE</th>
+                        <th scope="col">EMAIL</th>
+                        <th scope="col">ĐIỂM DANH</th>
+                      </tr>
+                    </thead>
+                    <tbody id="students"></tbody>
+                  </table>
+                </div>
+                <p id="no-results" class="empty" hidden>
+                  Không có sinh viên khớp tìm kiếm và bộ lọc. Đổi bộ lọc để xem
+                  lại toàn bộ lớp.
+                </p>
+              </div>
+            </form>
+            <details id="report-panel" class="surface">
+              <summary>Báo cáo chuyên cần của lớp</summary>
+              <div class="report-settings">
+                <label for="planned-total"
+                  >Tổng số buổi theo lịch gốc<input
+                    id="planned-total"
+                    type="number"
+                    min="1"
+                    max="200"
+                    placeholder="Chưa xác định" /></label
+                ><label for="warning-threshold"
+                  >Ngưỡng cảnh báo vắng (%)<input
+                    id="warning-threshold"
+                    type="number"
+                    min="1"
+                    max="100"
+                    placeholder="Chưa cấu hình" /></label
+                ><button id="save-policy" type="button" class="secondary">
+                  Lưu cấu hình lớp</button
+                ><button id="export-report" type="button" class="secondary">
+                  Xuất báo cáo cả lớp
+                </button>
+              </div>
+              <p id="report-note"></p>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>MSSV</th>
+                      <th>Họ tên</th>
+                      <th>Có mặt</th>
+                      <th>Vắng</th>
+                      <th>Vắng %</th>
+                      <th>Cảnh báo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-students"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </section>
+        <section id="empty" class="empty" hidden>
+          <h2>Chưa có lớp học</h2>
+          <p>
+            Import file FA26.xlsx để nhận danh sách lớp, sinh viên và lịch học.
+            Mỗi sheet tương ứng một lớp học phần.
+          </p>
+        </section>
+        <p class="footnote">
+          Dữ liệu chỉ được báo đã lưu sau khi máy GV xác nhận. Chốt buổi áp dụng
+          cho toàn bộ lớp, kể cả sinh viên đang bị bộ lọc ẩn.
+        </p>
+      </main>
+    </div>
+    <dialog id="action-dialog" aria-labelledby="dialog-title">
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-message"></p>
+      <label id="dialog-input-label"
+        ><span id="dialog-label"></span><input id="dialog-input"
+      /></label>
+      <div id="dialog-actions" class="actions"></div>
+    </dialog>
+    <script type="module" src="/app.mjs"></script>
+  </body>
+</html>

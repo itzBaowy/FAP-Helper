@@ -23,6 +23,7 @@ Markbook resetAttendance(Markbook book, {String? groupId}) {
       group.id,
       CourseAttendance(
         plannedTotal: data.plannedTotal,
+        absenceWarningPercent: data.absenceWarningPercent,
         sessions: [
           for (final s in data.sessions)
             AttendanceSession(

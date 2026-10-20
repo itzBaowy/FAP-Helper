@@ -175,6 +175,82 @@ void main() {
     await host.submit(id, '');
     expect(book.attendanceFor(group).history.last.action, 'qr_present');
   });
+  test('resume retains the original deadline, identity and saved receipt only for its ticket', () async {
+    await setupHost();
+    final accepted = host.scan(host.currentToken);
+    final ticket = accepted['ticket'] as String;
+    now = now.add(const Duration(minutes: 2));
+    final pending = host.resume(ticket);
+    expect(pending['expiresAt'], accepted['expiresAt']);
+    expect(pending.containsKey('identity'), false);
+    expect(pending['nonce'], accepted['nonce']);
+    await host.login(ticket, 'an@example.com');
+    expect(
+      host.resume(ticket)['identity'],
+      containsPair('email', 'an@example.com'),
+    );
+    expect(host.progress['savedPresent'], 0);
+    expect(host.progress['verifiedStudents'], 1);
+    await host.submit(ticket, '');
+    expect(host.resume(ticket)['submitted'], true);
+    expect(host.progress['savedPresent'], 1);
+    expect(() => host.resume('unknown'), throwsA(status(410)));
+    now = DateTime.parse(accepted['expiresAt'] as String);
+    expect(() => host.resume(ticket), throwsA(status(410)));
+  });
+
+  test('stopping revokes saved browser tickets without changing persisted attendance', () async {
+    await setupHost();
+    final ticket = await login();
+    await host.submit(ticket, '');
+    await host.stop();
+    expect(() => host.resume(ticket), throwsA(status(410)));
+    expect(
+      book.attendanceFor(group).sessions.single.marks['SE000001'],
+      AttendanceMark.present,
+    );
+  });
+  test(
+    'scan just before QR expiry keeps three minutes while late scans fail',
+    () async {
+      await setupHost();
+      final started = now;
+      final oldQr = host.currentToken;
+      now = started.add(const Duration(seconds: 14, milliseconds: 999));
+      final accepted = host.scan(oldQr);
+      final ticket = accepted['ticket'] as String;
+      final deadline = DateTime.parse(accepted['expiresAt'] as String);
+      expect(deadline, now.add(const Duration(minutes: 3)));
+      now = started.add(const Duration(seconds: 15));
+      // No teacher refresh is needed for the old QR to become invalid.
+      expect(() => host.scan(oldQr), throwsA(status(410)));
+      for (var i = 0; i < 8; i++) {
+        host.currentToken;
+        now = now.add(const Duration(seconds: 15));
+      }
+      await host.login(ticket, 'an@example.com');
+      now = deadline.subtract(const Duration(milliseconds: 1));
+      expect((await host.submit(ticket, ''))['status'], 'P');
+      expect(saves, 1);
+    },
+  );
+
+  test('scan deadline is fixed from acceptance and expires exactly at three minutes', () async {
+    await setupHost();
+    final accepted = host.scan(host.currentToken);
+    final ticket = accepted['ticket'] as String;
+    final deadline = DateTime.parse(accepted['expiresAt'] as String);
+    now = deadline.subtract(const Duration(seconds: 1));
+    await host.login(ticket, 'an@example.com');
+    now = deadline;
+    await expectLater(host.submit(ticket, ''), throwsA(status(410)));
+    await expectLater(
+      host.login(ticket, 'an@example.com'),
+      throwsA(status(410)),
+    );
+    expect(saves, 0);
+    expect(book.attendanceFor(group).sessions.single.marks, isEmpty);
+  });
   test(
     'secret never occurs in QR; wrong code can retry, bounded at 5 attempts',
     () async {

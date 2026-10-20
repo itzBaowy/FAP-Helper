@@ -1,6 +1,6 @@
 # Phase 4 — Trang GV giả lập và Chrome extension
 
-Phiên bản extension **0.4.2**, dùng cùng desktop **0.3.3**. Phase này hoàn tất luồng **desktop → CSV → extension → trang GV giả lập → lưu JSON**. Không cần tài khoản giảng viên của trường.
+Phiên bản extension **0.4.2**, tương thích CSV desktop hiện tại. Phase này hoàn tất luồng **desktop → CSV → extension → trang GV giả lập → lưu JSON**. Không cần tài khoản giảng viên của trường. Từ Windows v0.4.0, cùng giao diện web còn có thể kết nối trực tiếp Markbook của app; xem [luồng GV → SV](end-to-end-improvements.md). Hướng dẫn dưới đây vẫn dành cho mock độc lập.
 
 **v0.4.2 — Vercel:** trang GV có thể dùng domain Vercel cố định, kết nối HTTPS có khóa tới máy GV để lưu JSON; extension có cấu hình domain được phép. Xem [hướng dẫn Vercel cho trang GV](vercel-mock-setup.md).
 
@@ -16,7 +16,7 @@ Phiên bản extension **0.4.2**, dùng cùng desktop **0.3.3**. Phase này hoà
 
    Giữ cửa sổ này khi thử; `Ctrl+C` để dừng. Cần Node.js 22 trở lên, máy phát triển hiện có Node.js 22.19.0. Nếu cổng 8990 đang được dùng, dừng bản giả lập đang chạy trước khi mở lại.
 
-2. Mở Chrome tại **http://127.0.0.1:8990**. Bấm **Nhập dữ liệu**, chọn `mock-fap/demo/FA26-demo.json`. Đây là dữ liệu giả gồm 3 sinh viên, 2 buổi; chưa có P/A trên trang.
+2. Mở Chrome tại **http://127.0.0.1:8990**. Bấm **Import Excel**, chọn `mock-fap/demo/FA26-demo.json`. Đây là dữ liệu giả gồm 3 sinh viên, 2 buổi; chưa có P/A trên trang. Web ưu tiên buổi đang mở/hôm nay rồi buổi gần nhất đã qua, nên chọn đúng ngày trước khi đối chiếu CSV.
 3. Vào `chrome://extensions`, bật **Developer mode / Chế độ dành cho nhà phát triển**, chọn **Load unpacked / Tải tiện ích đã giải nén**, chọn thư mục `extension` (thư mục chứa `manifest.json`). Ghim **FAP Helper — Điểm danh giả lập** lên thanh công cụ.
 4. Trên trang giả lập chọn **PRM393 · SE1920**, buổi **2026-09-07 · Slot 1**.
 5. Bấm biểu tượng extension → chọn `mock-fap/demo/FA26-demo.csv` → chọn đúng buổi → **Đối chiếu với tab hiện tại**. Bản xem trước sẽ hiển thị **3 SV: 2 P, 1 A**.
@@ -44,7 +44,7 @@ Mỗi lần thao tác chuyển **một buổi**. CSV nhiều buổi có danh sá
 
 ## Lưu trữ và phạm vi
 
-Trang chạy cục bộ tại `127.0.0.1:8990`, lưu `%APPDATA%\FAPHelper-Mock\mock-fa26.json`, giữ bản sao `.bak` trước lần ghi. Không dùng database, localStorage hoặc IndexedDB. Không ghi vào hồ sơ desktop. Có thể đặt `FAP_MOCK_DATA_DIR` để dùng thư mục thử nghiệm riêng. Nếu file giả lập bị hỏng, server báo lỗi và không tự ghi đè; dừng server và kiểm tra file/bản sao `.bak`.
+Trang mock chạy cục bộ tại `127.0.0.1:8990`, lưu `%APPDATA%\FAPHelper-Mock\mock-fa26.json`, giữ bản sao `.bak` trước lần ghi. Bản nháp và lựa chọn buổi giữ trong sessionStorage của tab; kết quả chính vẫn ở server. Không dùng database, localStorage hoặc IndexedDB. Không ghi vào hồ sơ desktop. Có thể đặt `FAP_MOCK_DATA_DIR` để dùng thư mục thử nghiệm riêng. Nếu file giả lập bị hỏng, server báo lỗi và không tự ghi đè; dừng server và kiểm tra file/bản sao `.bak`.
 
 Trang được ghi rõ là giả lập; giao diện mô phỏng nghiệp vụ điểm danh, chưa xác nhận giống cấu trúc HTML của FAP thật. Extension chạy trên localhost hoặc domain Vercel đã cấu hình, không thao tác FAP của trường. Khi có quyền truy cập trang GV thật hoặc mẫu HTML phù hợp, cần viết adapter và kiểm thử riêng trước khi sử dụng thật.
 

@@ -136,6 +136,7 @@ class AttendanceEvent {
 class CourseAttendance {
   CourseAttendance({
     this.plannedTotal,
+    this.absenceWarningPercent,
     List<AttendanceSession> sessions = const [],
     List<AttendanceEvent> history = const [],
   }) : sessions = List.unmodifiable(sessions),
@@ -143,24 +144,34 @@ class CourseAttendance {
     if (plannedTotal != null && (plannedTotal! < 1 || plannedTotal! > 200)) {
       throw const FormatException('Tổng số buổi phải từ 1 đến 200.');
     }
+    if (absenceWarningPercent != null &&
+        (absenceWarningPercent! < 1 || absenceWarningPercent! > 100)) {
+      throw const FormatException('Ngưỡng cảnh báo vắng phải từ 1 đến 100%.');
+    }
     if (sessions.map((session) => session.id).toSet().length !=
         sessions.length) {
       throw const FormatException('Trùng ngày và slot của buổi học.');
     }
   }
   final int? plannedTotal;
+  final int? absenceWarningPercent;
   final List<AttendanceSession> sessions;
   final List<AttendanceEvent> history;
   bool get hasData =>
-      sessions.isNotEmpty || plannedTotal != null || history.isNotEmpty;
+      sessions.isNotEmpty ||
+      plannedTotal != null ||
+      absenceWarningPercent != null ||
+      history.isNotEmpty;
   Map<String, Object?> toJson() => {
     'plannedTotal': plannedTotal,
+    'absenceWarningPercent': absenceWarningPercent,
     'sessions': sessions.map((session) => session.toJson()).toList(),
     'history': history.map((event) => event.toJson()).toList(),
   };
   factory CourseAttendance.fromJson(Map<String, dynamic> json) =>
       CourseAttendance(
         plannedTotal: json['plannedTotal'] as int?,
+        absenceWarningPercent: json['absenceWarningPercent'] as int?,
         sessions: (json['sessions'] as List)
             .map(
               (s) => AttendanceSession.fromJson(

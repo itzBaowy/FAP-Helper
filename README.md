@@ -1,4 +1,4 @@
-# FAP Helper — Phase 4
+# FAP Helper — Windows v0.4.0
 
 Ứng dụng Flutter dành cho giảng viên trên Windows, quản lý nhiều môn/lớp trong kỳ **FA26 (FALL 2026)**. Dữ liệu lưu bằng file JSON; không dùng database.
 
@@ -15,11 +15,17 @@ Phase 2 bổ sung bảng điểm danh theo buổi, P/A thủ công, chốt, sử
 
 Phase 3 bổ sung QR đổi mỗi 15 giây, mã bí mật tùy chọn, trang sinh viên, xác thực Google và kết nối HTTPS thử nghiệm từ hai mạng khác nhau. Email phải thuộc danh sách lớp và miền cho phép (`gmail.com`, `fpt.edu.vn`). Từ v0.3.1, Client ID, miền email và kết nối được thiết lập tại **Cấu hình** trên sidebar; màn hình QR chỉ giữ tùy chọn mã bí mật cho từng đợt. Xem [cấu hình và hướng dẫn Phase 3](docs/phase-3.md).
 
-Phase 4 bổ sung **trang GV giả lập và Chrome extension**: đọc CSV, đối chiếu đúng buổi/MSSV, xem trước, tự điền P/A và submit. Trang lưu JSON riêng, không cần tài khoản GV của trường. Xem [hướng dẫn chạy thử và nghiệm thu Phase 4](docs/phase-4.md). Desktop hiện dùng v0.3.4; extension v0.4.2 hỗ trợ domain Vercel đã cấu hình. Xem [hướng dẫn Vercel cho trang GV](docs/vercel-mock-setup.md). Adapter FAP thật chưa triển khai.
+**v0.4.0 — Toàn bộ luồng GV → SV:** web GV và Windows dùng cùng Markbook và hàng đợi ghi file. Web có mở/nhận QR/dừng/chốt, tìm kiếm không dấu, lọc trạng thái, bản nháp qua F5/đổi buổi/mất mạng và đối chiếu khi có thay đổi đồng thời. Báo cáo theo lớp/SV có lịch sử, CSV và ngưỡng cảnh báo vắng do GV cấu hình. SV tải lại vẫn dùng đúng lượt quét cũ, không gia hạn 3 phút. Xem [hướng dẫn kết nối và bằng chứng kiểm thử](docs/end-to-end-improvements.md).
+
+Trong Windows, vào **Cấu hình → Web giảng viên · cùng dữ liệu Windows → Kết nối web GV → Sao chép liên kết mở web**. Chế độ cùng máy phục vụ web mới trực tiếp từ assets của app. Chế độ Internet cần triển khai bản static mới ở `deploy/mock-fap` và giữ máy GV hoạt động. Liên kết GV có khóa riêng; chỉ đưa QR sinh viên lên màn hình lớp.
+
+Phase 4 vẫn giữ **trang GV giả lập và Chrome extension v0.4.2** để thử quy trình CSV. Chế độ giả lập lưu JSON riêng và được ghi rõ nguồn dữ liệu; chế độ Windows lưu cùng file app. Xem [hướng dẫn Phase 4](docs/phase-4.md) và [Vercel cho web GV](docs/vercel-mock-setup.md). Adapter FAP thật chưa triển khai.
+
+**Kiểm chứng v0.4.0:** 86 kiểm thử Flutter, 24 Node, 10 tình huống trình duyệt GV → SV và extension MV3 thật (13 localhost/14 cấu hình Vercel mô phỏng) đạt. Phân tích mã sạch; Dart AOT và assets Windows release biên dịch được. Dữ liệu và đăng nhập Google trong kiểm thử luồng đều giả. Chưa có `.exe` v0.4.0 do thiếu bộ công cụ C++ Visual Studio trên máy build; website production chưa được triển khai lại trong đợt này.
 
 **v0.3.4 — Theo dõi điểm danh trực tiếp:** màn hình QR hiển thị tên, MSSV, nguồn QR/thủ công và giờ ghi nhận GMT+7 ngay sau khi lưu thành công. Lọc có mặt/vắng/chưa ghi nhận, tìm sinh viên và sắp xếp theo lần cập nhật mới nhất hoặc MSSV. Tắt **Hiển thị người đã điểm danh** khi trình chiếu QR để ẩn danh sách. Bảng điểm danh cũng có bộ lọc theo buổi đang chọn. Trang SV chặn gửi liên tiếp và thông báo rõ khi đã điểm danh; hàng đợi trên máy GV bảo đảm nhiều lượt quét của cùng sinh viên chỉ lưu một P và một sự kiện QR. Dữ liệu JSON/CSV hiện có tiếp tục dùng được. Bản static tại `deploy/student` đã cập nhật nguồn; cần triển khai lại nếu đang dùng trang SV trên Vercel.
 
-**Kiểm chứng v0.3.4:** 74 kiểm thử Flutter, 13 kiểm thử Node và phân tích mã đạt. Kiểm thử tích hợp dùng HTTP localhost thật, danh tính Google giả và dữ liệu sinh viên giả: lỗi/chờ lưu chưa hiện tên, lưu thành công mới hiện, gửi lại không tăng số bản ghi. Kiểm tra bố cục QR ở 1280×900 và 800×600. Ảnh [cửa sổ rộng](build/previews/attendance-live-wide.png) và [800×600](build/previews/attendance-live-800x600.png) được tạo bằng Flutter test renderer, không phải ảnh app native. Phần Dart AOT và assets Windows release đã biên dịch bằng `flutter assemble`; chưa có `.exe` v0.3.4 vì Visual Studio trên máy hiện tại thiếu MSVC, CMake và Windows SDK. Không coi các bản `.exe`/ZIP của phiên bản trước là bản v0.3.4.
+**Kiểm chứng v0.3.4:** 76 kiểm thử Flutter, 17 kiểm thử Node và phân tích mã đạt. Kiểm thử tích hợp dùng HTTP localhost thật, danh tính Google giả và dữ liệu sinh viên giả: lỗi/chờ lưu chưa hiện tên, lưu thành công mới hiện, gửi lại không tăng số bản ghi. Kiểm tra bố cục QR ở 1280×900 và 800×600. Ảnh [cửa sổ rộng](build/previews/attendance-live-wide.png) và [800×600](build/previews/attendance-live-800x600.png) được tạo bằng Flutter test renderer, không phải ảnh app native. Phần Dart AOT và assets Windows release đã biên dịch bằng `flutter assemble`; chưa có `.exe` v0.3.4 vì Visual Studio trên máy hiện tại thiếu MSVC, CMake và Windows SDK. Không coi các bản `.exe`/ZIP của phiên bản trước là bản v0.3.4.
 
 **v0.3.3 — Reset:** tại Cấu hình, chọn reset một lớp học phần hoặc toàn bộ FA26; nhập RESET để xác nhận. Tự sao lưu trước khi xóa P/A, giữ sinh viên, lịch học, cấu hình và lịch sử.
 
@@ -44,7 +50,7 @@ Khi build thành công, chạy `build\windows\x64\runner\Release\fap_helper_v1.e
 
 **Kiểm tra Phase 3:** v0.3.0 đã đạt 62/62 kiểm thử và kiểm tra native QR/HTTPS, hết hạn QR, chốt/dừng server với hồ sơ giả; Chrome dùng nút Google giả riêng cho test. Bản cập nhật sidebar v0.3.1 đã đạt 16 kiểm thử liên quan đến cấu hình, sidebar, bảng điểm danh và bố cục; phân tích mã không có lỗi. Người dùng đã nhập Client ID; cần hoàn tất Google Authorized JavaScript origins và nghiệm thu đăng nhập thật. Bản đóng gói: [FAPHelper-Phase3-Windows-x64.zip](build/FAPHelper-Phase3-Windows-x64.zip).
 
-Chạy ngay bản đã build: [fap_helper_v1.exe](build/windows/x64/runner/Release/fap_helper_v1.exe). Máy này đã được import dữ liệu FA26 trong bước kiểm tra. Người dùng chỉ chạy app, không cần cài Flutter hoặc Visual Studio; các công cụ đó dành cho việc build từ mã nguồn. Máy khác cần có Microsoft Visual C++ Runtime phù hợp.
+Các `.exe`/ZIP Phase 3 còn trong `build` là bản cũ, không chứa tính năng v0.4.0. Người dùng bản đóng gói không cần Flutter/Visual Studio; máy build cần các công cụ này. Máy chạy app cần Microsoft Visual C++ Runtime phù hợp.
 
 ## Import Excel
 
